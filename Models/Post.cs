@@ -5,6 +5,7 @@ namespace Forum{
         public string Content{get;set;}
         public int UserId{get;set;}
         public User user{get;set;}
-        
+        public List<Comment>Comments{get;set;}
+
     }
 }
