@@ -3,6 +3,7 @@ namespace Forum
     using System.Data.Common;
     using System.Security.Cryptography.X509Certificates;
     using BCrypt.Net;
+    using Microsoft.Extensions.Options;
     using Terminal.Gui;
     public class UserAuth{
 
@@ -29,38 +30,38 @@ namespace Forum
 
           var UsernameLabel = new Label("Username:"){
             X = Pos.Center(), 
-            Y = 2,
-          };
-
-          var PasswordLabel = new Label("Password:"){
-             X = Pos.Center(),
-             Y = 4,
+            Y = 2
           };
 
           var UsernameField = new TextField(){
              X = Pos.Center(),
-             Y = Pos.Top(UsernameLabel) + 1,
+             Y = 3,
              Width = 20,
              
+          };
+
+          var PasswordLabel = new Label("Password:"){
+             X = Pos.Center(),
+             Y = 5,
           };
 
           var PasswordField = new TextField()
           {
             X = Pos.Center(),
-            Y = Pos.Top(PasswordLabel) + 1,
+            Y = 6,
             Width = 20
           };
 
           var submitButton = new Button("Submit")
           {
              X = Pos.Center(),
-             Y = Pos.Top(PasswordField) + 2
+             Y = 8
           };
 
           var exitButton = new  Button("Exit")
           {
             X = Pos.Center(),
-            Y = Pos.Top(PasswordField) + 4
+            Y = 10
           };
 
           exitButton.Clicked += () =>
@@ -169,26 +170,32 @@ namespace Forum
           var UsernameField = new TextField()
           { 
             X = Pos.Center(),
-            Y = Pos.Top(UsernameLabel) + 1,
+            Y = 3,
             Width = 20
           };
 
           var PasswordLabel = new Label("Password:")
           {
             X = Pos.Center(),
-            Y =  4
+            Y =  5
           };
 
           var PasswordField = new TextField()
           {
             X = Pos.Center(),
-            Y = Pos.Top(PasswordLabel) + 1,
+            Y = 6,
             Width = 20
           };
 
           var submitButton = new Button("Submit"){
             X = Pos.Center(),
-            Y = Pos.Top(PasswordField) + 2
+            Y = 8
+          };
+
+          var ExitButton = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = 10,
           };
 
           submitButton.Clicked += () =>
@@ -218,12 +225,20 @@ namespace Forum
             LoggedInUser.Comments = user.Comments;
             LoggedInUser.UserGroups = user.UserGroups;
             MessageBox.Query("Success",$"User {LoggedInUser.Username} has loggedin.","OK");
-
+            UserMenu userMenu = new UserMenu();
+            userMenu.ShowUserMenu(top,LoggedInUser);
           };
 
-          window.Add(title,PasswordField,PasswordLabel,UsernameField,UsernameLabel,submitButton);
+          ExitButton.Clicked += () =>
+          {
+            MainMenu mainMenu = new MainMenu();
+            top.RemoveAll();
+            mainMenu.ShowMainMenu(top);
+          };
+
+          window.Add(ExitButton,title,PasswordField,PasswordLabel,UsernameField,UsernameLabel,submitButton);
           top.Add(window);
-          Application.Run(top);
+        
         }
     }
 }
