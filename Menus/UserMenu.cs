@@ -6,6 +6,7 @@ namespace Forum
     {
         public void ShowUserMenu(Toplevel top,User LoggedInUser)
         {
+          UserCrud userCrud = new UserCrud();
           top.RemoveAll();
           var window = new FrameView()
           {
@@ -102,14 +103,26 @@ namespace Forum
 
           AddPost.Clicked += () =>
           {
-            UserCrud userCrud = new UserCrud();
             userCrud.AddPost(top,LoggedInUser);
           };
 
           ViewMyPosts.Clicked += () =>
           {
-            UserCrud userCrud = new UserCrud();
             userCrud.ViewMyPosts(top,LoggedInUser);
+          };
+
+          ViewPosts.Clicked += ()=>
+          {
+            userCrud.ViewAllPosts(top,LoggedInUser);
+          };
+
+          AddCommentToPost.Clicked += () =>
+          {
+            userCrud.AddComment(top,LoggedInUser);
+          };
+          RemoveMyPost.Clicked += () =>
+          {
+            userCrud.RemoveMyPost(top,LoggedInUser);
           };
 
           window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,JoinGroup,ViewGroupComments,AddCommentToGroup,ExitButton);

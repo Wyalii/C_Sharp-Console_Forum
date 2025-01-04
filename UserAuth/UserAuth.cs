@@ -201,7 +201,17 @@ namespace Forum
           submitButton.Clicked += () =>
           {
             var UsernameInput = UsernameField.Text.ToString();
+            if(string.IsNullOrWhiteSpace(UsernameInput))
+            {
+              MessageBox.ErrorQuery("Validation Error","Invalid Username Input.","OK");
+              return;
+            }
             var PasswordInput = PasswordField.Text.ToString();
+            if(string.IsNullOrWhiteSpace(PasswordInput))
+            {
+              MessageBox.ErrorQuery("Validation Error","Invalid Password Input.","OK");
+              return;
+            }
             var Users = database.Users.ToList();
             var user = Users.FirstOrDefault(u => u.Username == UsernameInput);
 
