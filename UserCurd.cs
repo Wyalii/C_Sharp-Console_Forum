@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using Terminal.Gui;
 
 namespace Forum
@@ -477,6 +478,191 @@ namespace Forum
 
            Frame.Add(PostIdLabel, PostIdField, SubmitButton, ExitButton);
            top.Add(Frame);
+        }
+
+        public void SearchPost(Toplevel top, User LoggedInUser)
+        {
+          top.RemoveAll();
+          var Frame = new FrameView()
+          {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+          };
+
+          var PostIdLabel = new Label("Provide Id")
+          {
+            X = Pos.Center(),
+            Y = 0,
+          };
+
+          var PostIdField = new TextField()
+          {
+            Width = 20,
+            X = Pos.Center(),
+            Y = Pos.Bottom(PostIdLabel)
+          };
+
+          var SearchWithId = new Button("Search with Id")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(PostIdField) + 1
+          };
+
+          var PostTitleLabel = new Label("Provide Title")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(SearchWithId) + 2,
+          };
+
+          var PostTitleField = new TextField()
+          {
+            Width = 20,
+            X = Pos.Center(),
+            Y = Pos.Bottom(PostTitleLabel)
+          };
+
+          var SearchWithTitle = new Button("Search with Title")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(PostTitleField) + 1
+          };
+
+          var ExitButton = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(SearchWithTitle) + 2,
+          };
+
+          ExitButton.Clicked += () =>
+          {
+            UserMenu userMenu = new UserMenu();
+            userMenu.ShowUserMenu(top, LoggedInUser);
+          };
+
+          SearchWithId.Clicked += () =>
+          {
+            var PostIdInput = PostIdField.Text.ToString();
+            if(string.IsNullOrWhiteSpace(PostIdInput))
+            {
+              MessageBox.ErrorQuery("Validation Errror","Invalid Id Input.","OK");
+              return;
+            }
+            var PostIdInt = int.Parse(PostIdInput);
+            var post = database.Posts.Include(post => post.user).FirstOrDefault(p => p.Id == PostIdInt);
+            if(post == null)
+            {
+              MessageBox.ErrorQuery("Post Error","Post with provided Id doesn't exists.","OK");
+              return;
+            }
+
+            var IdWindow = new Window($"Id: {post.Id}, User: {post.user.Username}, Title: {post.Title}")
+            {
+              Width = Dim.Fill(),
+              Height = Dim.Fill()
+            };
+
+            var IdPostContentView = new TextView()
+            {
+              Width = Dim.Fill(),
+              Height = 20,
+              Text = $"{post.Content}"
+            };
+
+            var comments = database.Comments
+            .Include(comment => comment.user)
+            .Where(c => c.PostId == post.Id);
+
+            var FormatedComments = comments.Any()
+            ? comments.Select(c => $"User: {c.user.Username}, Comment: {c.Text}").ToList()
+            : new List<string>{"No comments avaiable"} ;
+
+            var IdPostCommentsView = new ListView(FormatedComments)
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(IdPostContentView) + 3,
+              Width = Dim.Fill(),
+              Height = 10,
+            };
+
+            var ExitFromIdPost = new Button("Exit")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(IdPostCommentsView) + 1
+            };
+            ExitFromIdPost.Clicked += () =>
+            {
+              SearchPost(top,LoggedInUser);
+            };
+
+            IdWindow.Add(IdPostContentView,IdPostCommentsView,ExitFromIdPost);
+            top.RemoveAll();
+            top.Add(IdWindow);
+            
+          };
+
+          
+          SearchWithTitle.Clicked += () =>
+          {
+            var PostTitleInput = PostTitleField.Text.ToString();
+            if(string.IsNullOrWhiteSpace(PostTitleInput))
+            {
+              MessageBox.ErrorQuery("Validation Error","Invalid title input.","OK");
+              return;
+            }
+            var post = database.Posts
+            .Include(post => post.user)
+            .FirstOrDefault(p => p.Title.ToLower() == PostTitleInput.ToLower());
+
+            if(post == null)
+            {
+              MessageBox.ErrorQuery("Post Error","Post with provided title doesn't exists.","OK");
+              return;
+            }
+
+            var TitleWindow = new Window($"Post Id: {post.Id}, User: {post.user.Username}, Title: {post.Title}")
+            {
+              Width = Dim.Fill(),
+              Height = Dim.Fill(),
+            };
+
+            var TitlePostContent= new TextView()
+            {
+              Width = Dim.Fill(),
+              Height = 20,
+              Text = $"{post.Content}",
+              ReadOnly = true,
+            };
+
+            var comments = database.Comments.Where(c => c.PostId == post.Id);
+            var FormatedComments = comments.Any()
+            ? comments.Select(c => $"User: {c.user.Username}, Comment: {c.Text}").ToList()
+            : new List<string>{"No Comments found."} ;
+
+            var TitlePostCommentsView = new ListView(FormatedComments)
+            {
+              Width = Dim.Fill(),
+              Height = 10,
+              Y = Pos.Bottom(TitlePostContent) + 2,
+            };
+
+            var ExitButton = new Button("Exit")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(TitlePostCommentsView) + 2
+            };
+
+            ExitButton.Clicked += () => 
+            {
+              SearchPost(top,LoggedInUser);
+            };
+
+            TitleWindow.Add(TitlePostContent,TitlePostCommentsView,ExitButton);
+            top.RemoveAll();
+            top.Add(TitleWindow);
+
+          };
+          Frame.Add(PostIdLabel,PostIdField,SearchWithId,PostTitleLabel,PostTitleField,SearchWithTitle,ExitButton);
+          top.Add(Frame);
         }
 
     }

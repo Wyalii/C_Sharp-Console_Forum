@@ -124,6 +124,10 @@ namespace Forum
           {
             userCrud.RemoveMyPost(top,LoggedInUser);
           };
+          SearchPost.Clicked += () =>
+          {
+            userCrud.SearchPost(top,LoggedInUser);
+          };
 
           window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,JoinGroup,ViewGroupComments,AddCommentToGroup,ExitButton);
           top.Add(window);
