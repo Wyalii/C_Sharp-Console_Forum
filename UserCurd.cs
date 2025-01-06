@@ -665,6 +665,75 @@ namespace Forum
           top.Add(Frame);
         }
 
+        public void CreateGroup(Toplevel top,User LoggedInUser)
+        {
+          top.RemoveAll();
+          var window = new FrameView()
+          {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+          };
+
+          var GroupNameLabel = new Label("Provide Group Name")
+          {
+            X = Pos.Center(),
+            Y = 1,
+          };
+
+          var GroupNameField = new TextField()
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(GroupNameLabel),
+            Width = 20,
+          };
+          
+          var SubmitButton = new Button("Submit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(GroupNameField) + 1,
+          };
+
+          var ExitButton = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(SubmitButton) + 1,
+
+          };
+
+          ExitButton.Clicked += () =>
+          {
+            UserMenu userMenu = new UserMenu();
+            userMenu.ShowUserMenu(top,LoggedInUser);
+          };
+
+          SubmitButton.Clicked += () =>
+          {
+            var GroupNameInput = GroupNameField.Text.ToString();
+            if(string.IsNullOrWhiteSpace(GroupNameInput))
+            {
+              MessageBox.ErrorQuery("Validation Error","Wrong Group name input.","OK");
+              return;
+            }
+            var group = database.Groups.FirstOrDefault(g => g.Name.ToLower() == GroupNameInput.ToLower());
+            if(group != null)
+            {
+              MessageBox.ErrorQuery("Group Error","Group with provided name already exists.","OK");
+              return;
+            }
+
+            Group NewGroup = new Group{Name = GroupNameInput};
+            if(LoggedInUser != null)
+            {
+              database.Groups.Add(NewGroup);
+              database.SaveChanges();
+              MessageBox.Query("Success",$"Group: {NewGroup.Name} was created!","OK");
+              
+            }
+          };
+
+          window.Add(GroupNameLabel,GroupNameField,SubmitButton,ExitButton);
+          top.Add(window);
+        }
     }
 }
 

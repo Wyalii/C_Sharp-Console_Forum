@@ -128,6 +128,10 @@ namespace Forum
           {
             userCrud.SearchPost(top,LoggedInUser);
           };
+          CreateGroup.Clicked += () =>
+          {
+            userCrud.CreateGroup(top,LoggedInUser);
+          };
 
           window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,JoinGroup,ViewGroupComments,AddCommentToGroup,ExitButton);
           top.Add(window);
