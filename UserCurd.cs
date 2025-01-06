@@ -7,8 +7,14 @@ namespace Forum
     public class UserCrud
     {
         Database database = new Database();
+        MainMenu mainMenu = new MainMenu();
+        UserMenu userMenu = new UserMenu();
         public void AddPost(Toplevel top, User LoggedInUser)
         {
+            if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+            {
+              mainMenu.ShowMainMenu(top);
+            }
             top.RemoveAll();
 
             var window = new FrameView()
@@ -89,6 +95,11 @@ namespace Forum
                   MessageBox.ErrorQuery("Validation Error","Invalid Post Content Input.","OK");
                   return;
                 }
+                if(database.Posts.Any(p => p.Title.ToLower() == PostTitle.ToLower()))
+                {
+                  MessageBox.ErrorQuery("Post Error","Post with this title already exists.","OK");
+                  return;
+                }
                 Post NewPost = new Post{Title = PostTitle, Content = PostContent, UserId = LoggedInUser.Id};
                 database.Posts.Add(NewPost);
                 database.SaveChanges();
@@ -106,17 +117,20 @@ namespace Forum
 
         public void ViewMyPosts(Toplevel top, User LoggedInUser)
         {
+          if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+          {
+            mainMenu.ShowMainMenu(top);
+          }
           top.RemoveAll();
           var UserPosts = database.Posts.Include(post => post.user).Where(p => p.UserId == LoggedInUser.Id).ToList();
           if(UserPosts.Count == 0)
           {
             MessageBox.ErrorQuery("Post Error","User doesnt have any posts.","OK");
-            UserMenu userMenu = new UserMenu();
             userMenu.ShowUserMenu(top,LoggedInUser);
           }
           var Formated = UserPosts.Select(post => $"Id: {post.Id} | Title: {post.Title}").ToList();
 
-          var window = new ListView(Formated)
+          var windowList = new ListView(Formated)
           {
             X = Pos.Center(),
             Y = 0,
@@ -124,11 +138,11 @@ namespace Forum
             Height = Dim.Fill() - 3
           };
 
-          window.KeyDown += (e) =>
+          windowList.KeyDown += (e) =>
           {
             if(e.KeyEvent.Key == Key.Enter)
             {
-              var PostIndex = window.SelectedItem;
+              var PostIndex = windowList.SelectedItem;
               if(PostIndex != -1)
               {
                 var SelectedPost = UserPosts[PostIndex];
@@ -137,8 +151,15 @@ namespace Forum
                   MessageBox.ErrorQuery("Post Error","Post Doesn't Exists.","OK");
                   return;
                 }
-                var Comments = database.Comments.Include(comment => comment.user).Where(c => c.PostId == SelectedPost.Id).ToList();
-                var FormattedComments = Comments.Any() ? Comments.Select(comment => $"User: {comment.user.Username} | Comment: {comment.Text}").ToList() : new List<string>{"no comments found"};
+                var Comments = database.Comments
+                .Include(comment => comment.user)
+                .Where(c => c.PostId == SelectedPost.Id)
+                .ToList();
+
+                var FormattedComments = Comments.Any()
+                ? Comments.Select(comment => $"User: {comment.user.Username} | Comment: {comment.Text}").ToList()
+                : new List<string>{"no comments found"};
+
                 var PostContent = SelectedPost.Content;
 
                 var PostWindow = new Window($"Post Id: {SelectedPost.Id}, Post Author: {SelectedPost.user.Username}, Post Title: {SelectedPost.Title}")
@@ -191,7 +212,7 @@ namespace Forum
           var ExitButton = new Button("Exit")
           {
             X = Pos.Center(),
-            Y = Pos.Bottom(window) + 1
+            Y = Pos.Bottom(windowList) + 1
           };
 
           ExitButton.Clicked += () =>
@@ -201,11 +222,15 @@ namespace Forum
           };
           
           
-          top.Add(window,ExitButton);
+          top.Add(windowList,ExitButton);
         }
 
         public void ViewAllPosts(Toplevel top,User LoggedInUser)
         {
+            if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+            {
+              mainMenu.ShowMainMenu(top);
+            }
             top.RemoveAll();
 
             var Posts = database.Posts.Include(post => post.user).ToList();
@@ -309,6 +334,10 @@ namespace Forum
 
         public void AddComment(Toplevel top, User LoggedInUser)
         {
+           if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+           {
+             mainMenu.ShowMainMenu(top);
+           }
            top.RemoveAll();
 
            var Frame = new FrameView()
@@ -407,6 +436,10 @@ namespace Forum
 
         public void RemoveMyPost(Toplevel top,User LoggedInUser)
         {
+           if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+           {
+             mainMenu.ShowMainMenu(top);
+           }
            top.RemoveAll();
 
            var Frame = new FrameView()
@@ -482,6 +515,11 @@ namespace Forum
 
         public void SearchPost(Toplevel top, User LoggedInUser)
         {
+          if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+          {
+            mainMenu.ShowMainMenu(top);
+          }
+
           top.RemoveAll();
           var Frame = new FrameView()
           {
@@ -667,6 +705,11 @@ namespace Forum
 
         public void CreateGroup(Toplevel top,User LoggedInUser)
         {
+          if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+          {
+            mainMenu.ShowMainMenu(top);
+          }
+
           top.RemoveAll();
           var window = new FrameView()
           {
@@ -722,17 +765,132 @@ namespace Forum
             }
 
             Group NewGroup = new Group{Name = GroupNameInput};
-            if(LoggedInUser != null)
-            {
-              database.Groups.Add(NewGroup);
-              database.SaveChanges();
-              MessageBox.Query("Success",$"Group: {NewGroup.Name} was created!","OK");
-              
-            }
+            
+            database.Groups.Add(NewGroup);
+            database.SaveChanges();
+            MessageBox.Query("Success",$"Group: {NewGroup.Name} was created!","OK");
+
+            
           };
 
           window.Add(GroupNameLabel,GroupNameField,SubmitButton,ExitButton);
           top.Add(window);
+        }
+
+        public void ViewGroups(Toplevel top, User LoggedInUser)
+        {
+          top.RemoveAll();
+
+          if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+          {
+            mainMenu.ShowMainMenu(top);
+          }
+
+          var window = new FrameView()
+          {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+          };
+
+          var FormatedGroups = database.Groups.Any()
+          ? database.Groups
+          .Select(g =>$"Id: {g.Id}, Name: {g.Name}").ToList()
+          : new List<string>{"No Groups Avaiable"};
+
+          var AllGroups = database.Groups.Include(g => g.UserGroups).ToList();
+          
+
+          var GroupList = new ListView(FormatedGroups)
+          {
+            Width = Dim.Fill(),
+            Height = 20,
+          };
+
+          var ExitButton = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(GroupList) + 1,
+          };
+
+          ExitButton.Clicked += () =>
+          {
+            userMenu.ShowUserMenu(top,LoggedInUser);
+          };
+
+          GroupList.KeyDown += e =>
+          {
+            if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+            {
+              mainMenu.ShowMainMenu(top);
+            }
+
+            if(e.KeyEvent.Key == Key.Enter)
+            {
+              top.RemoveAll();
+              var GroupIndex = GroupList.SelectedItem;
+              if(GroupIndex == -1)
+              {
+                MessageBox.ErrorQuery("Select Error","Please Select an item first.","OK");
+                return;
+              }
+
+              var SelectedGroup = AllGroups[GroupIndex];
+
+              var GroupWindow = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name}")
+              {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+              };
+
+
+              top.Add(GroupWindow);
+            }
+          };
+
+          window.Add(GroupList,ExitButton);
+          top.Add(window);
+        }
+
+        public void ShowMyGroups(Toplevel top,User LoggedInUser)
+        {
+          top.RemoveAll();
+          if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
+          {
+            mainMenu.ShowMainMenu(top);
+          }
+          var UserGroups = database.UserGroups
+          .Include(us => us.user)
+          .Include(us => us.group)
+          .Where(us => us.UserId == LoggedInUser.Id)
+          .ToList();
+
+          if(UserGroups == null)
+          {
+            MessageBox.ErrorQuery("Group Error","User is not joined to any groups.","OK");
+            return;
+          }
+
+          var Window = new Window()
+          {
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+          };
+
+          var GroupList = new ListView(UserGroups)
+          {
+            Y = 1,
+            Width = Dim.Fill(),
+            Height = 20,
+          };
+
+          var ExitButton = new Button("Exit")
+          {
+            X  = Pos.Center(),
+            Y = Pos.Bottom(GroupList) + 2
+          };
+
+          Window.Add(GroupList,ExitButton);
+          top.Add(Window);
         }
     }
 }

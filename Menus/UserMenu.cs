@@ -71,12 +71,6 @@ namespace Forum
             Y = 8,
           };
 
-          var JoinGroup = new Button("Join a Group")
-          {
-            X = Pos.Center(),
-            Y = 9
-          };
-
           var ViewGroupComments = new Button("View Group Comments")
           {
             X = Pos.Center(),
@@ -132,8 +126,13 @@ namespace Forum
           {
             userCrud.CreateGroup(top,LoggedInUser);
           };
+          ViewGroups.Clicked += () =>
+          {
+            userCrud.ViewGroups(top,LoggedInUser);
+          };
+          
 
-          window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,JoinGroup,ViewGroupComments,AddCommentToGroup,ExitButton);
+          window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,ViewGroupComments,AddCommentToGroup,ExitButton);
           top.Add(window);
           
 
