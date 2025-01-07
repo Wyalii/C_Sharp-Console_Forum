@@ -80,12 +80,6 @@ namespace Forum
               var NewUsername = UsernameField.Text.ToString();
               var NewPassword = PasswordField.Text.ToString();
 
-              if(Users.Any(u => u.Username == NewUsername))
-              {
-                MessageBox.ErrorQuery("Error","User with provided Username Aleardy Exists.");
-                return;
-              }
-
               if(string.IsNullOrWhiteSpace(NewUsername))
               {
                 MessageBox.ErrorQuery("Username Validation Error","Please Provide Username","OK");
@@ -101,6 +95,12 @@ namespace Forum
               if(NewUsername.Length < 4)
               {
                 MessageBox.ErrorQuery("Username Validation Error","Username must contain more than 4 characters.","OK");
+                return;
+              }
+
+              if(Users.Any(u => u.Username.ToLower() == NewUsername.ToLower()))
+              {
+                MessageBox.ErrorQuery("Error","User with provided Username Aleardy Exists.","OK");
                 return;
               }
 
@@ -146,7 +146,6 @@ namespace Forum
         public void Login(Toplevel top)
         {
           top.RemoveAll();
-
           var window = new FrameView()
           {
             X = 0,

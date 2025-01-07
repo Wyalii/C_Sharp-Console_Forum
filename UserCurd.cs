@@ -190,10 +190,21 @@ namespace Forum
                   Height = 10
                 };
 
-                var ExitComments = new Button("Exit Comments")
+                var AddCommentBtn = new Button("Add Comment")
                 {
                   X = Pos.Center(),
                   Y = Pos.Bottom(CommentsListView) + 2,
+                };
+
+                var RemovePostBtn = new Button("Remove Post")
+                {
+                  X = Pos.Center(),
+                  Y = Pos.Bottom(AddCommentBtn) + 1,
+                };
+                var ExitComments = new Button("Exit Comments")
+                {
+                  X = Pos.Center(),
+                  Y = Pos.Bottom(RemovePostBtn) + 1,
                 };
 
                 ExitComments.Clicked += () =>
@@ -201,7 +212,17 @@ namespace Forum
                   ViewAllPosts(top,LoggedInUser);
                 };
 
-                PostWindow.Add(PostContentView,ExitComments,CommentsListView);
+                AddCommentBtn.Clicked += () =>
+                {
+                  AddComment(top,LoggedInUser,SelectedPost.Id);
+                };
+
+                RemovePostBtn.Clicked += () =>
+                {
+                  RemoveMyPost(top,LoggedInUser,SelectedPost.Id);
+                };
+
+                PostWindow.Add(PostContentView,ExitComments,CommentsListView,AddCommentBtn,RemovePostBtn);
                 top.RemoveAll();
                 top.Add(PostWindow);
               }
@@ -248,7 +269,7 @@ namespace Forum
               X = 0,
               Y = 0,
               Width = Dim.Fill(),
-              Height = Dim.Fill() - 3
+              Height = 20,
             };
 
             window.KeyDown += (e) =>
@@ -296,10 +317,16 @@ namespace Forum
                      Height = 10
                    };
 
+                   var AddCommentBtn = new Button("Add Comment")
+                   {
+                     X = Pos.Center(),
+                     Y = Pos.Bottom(CommentsListView) + 2
+                   };
+
                    var ExitComments = new Button("Exit Comments")
                    {
                      X = Pos.Center(),
-                     Y = Pos.Bottom(CommentsListView) + 2,
+                     Y = Pos.Bottom(AddCommentBtn) + 1,
                    };
 
                    ExitComments.Clicked += () =>
@@ -307,7 +334,12 @@ namespace Forum
                      ViewAllPosts(top,LoggedInUser);
                    };
 
-                   PostWindow.Add(PostContentView,ExitComments,CommentsListView);
+                   AddCommentBtn.Clicked += () =>
+                   {
+                     AddComment(top,LoggedInUser,SelectedPost.Id);
+                   };
+
+                   PostWindow.Add(PostContentView,ExitComments,CommentsListView,AddCommentBtn);
                    top.RemoveAll();
                    top.Add(PostWindow);
                 }
@@ -315,11 +347,17 @@ namespace Forum
               }
             };
          
+            var ViewMyPostsBtn = new Button("View My Posts")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(window) + 1
+            };
+          
 
             var ExitButton = new Button("Exit")
             {
               X = Pos.Center(),
-              Y = Pos.Bottom(window) + 1
+              Y = Pos.Bottom(ViewMyPostsBtn) + 1
             };
 
             ExitButton.Clicked += () =>
@@ -327,12 +365,17 @@ namespace Forum
                UserMenu userMenu = new UserMenu();
                userMenu.ShowUserMenu(top,LoggedInUser);
             };
+
+            ViewMyPostsBtn.Clicked += () =>
+            {
+              ViewMyPosts(top,LoggedInUser);
+            };
           
           top.RemoveAll();
-          top.Add(window,ExitButton);
+          top.Add(window,ExitButton,ViewMyPostsBtn);
         }
 
-        public void AddComment(Toplevel top, User LoggedInUser)
+        public void AddComment(Toplevel top, User LoggedInUser,int PostId)
         {
            if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
            {
@@ -348,42 +391,30 @@ namespace Forum
              Height = Dim.Fill(),
            };
            
-           var PostIdLabel = new Label("Write Post Id")
-           {
-             X = Pos.Center(),
-             Y = 1,
-           };
-
-           var PostIdField = new TextField()
-           {
-             X = Pos.Center(),
-             Y = 2,
-             Width = 20,
-           };
-
            var CommentLabel = new Label("Write Your Comment")
            {
              X = Pos.Center(),
              Y = 4
            };
 
-           var CommentField = new TextField()
+           var CommentField = new TextView()
            {
              X = Pos.Center(),
              Y = 5,
-             Width = 20
+             Width = 20,
+             Height = 10
            };
 
            var SubmitButton = new Button("Submit")
            {
              X = Pos.Center(),
-             Y = 7,
+             Y = Pos.Bottom(CommentField) + 1,
            }; 
 
            var ExitButton = new Button("Exit")
            {
              X = Pos.Center(),
-             Y = 9,
+             Y = Pos.Bottom(SubmitButton) + 1,
            };
 
            ExitButton.Clicked += () =>
@@ -397,27 +428,20 @@ namespace Forum
            {
              try
              {
-               var PostId = PostIdField.Text.ToString();
-               if(string.IsNullOrEmpty(PostId))
-               {
-                 MessageBox.ErrorQuery("Validation Error","Invalid Post id input.","OK");
-                 return;
-               }
                var comment = CommentField.Text.ToString();
                if(string.IsNullOrWhiteSpace(comment))
                {
                  MessageBox.ErrorQuery("Validation Error","Invalid comment input.","OK");
                  return;
                }
-               var IntPostId = int.Parse(PostId);
 
-               var post = database.Posts.FirstOrDefault(P => P.Id.ToString() == PostId);
+               var post = database.Posts.FirstOrDefault(P => P.Id == PostId);
                if(post == null)
                {
                  MessageBox.ErrorQuery("Post Error","Post with provided Id Doesn't Exists.","OK");
                  return;
                }
-               Comment NewComment = new Comment{PostId = IntPostId, UserId = LoggedInUser.Id, Text = comment};
+               Comment NewComment = new Comment{PostId = PostId, UserId = LoggedInUser.Id, Text = comment};
                database.Comments.Add(NewComment);
                database.SaveChanges();
                MessageBox.Query("Success",$"Message: {NewComment.Text}, was added","OK");
@@ -429,88 +453,33 @@ namespace Forum
              }
            };
 
-           Frame.Add(PostIdLabel,PostIdField,CommentLabel,CommentField,ExitButton,SubmitButton);
+           Frame.Add(CommentLabel,CommentField,ExitButton,SubmitButton);
            top.Add(Frame);
         }
 
-
-        public void RemoveMyPost(Toplevel top,User LoggedInUser)
+        public void RemoveMyPost(Toplevel top,User LoggedInUser,int PostId)
         {
            if(!database.Users.Any(u => u.Id == LoggedInUser.Id))
            {
              mainMenu.ShowMainMenu(top);
            }
-           top.RemoveAll();
+          try
+          {
+            var post = database.Posts.FirstOrDefault(p => p.Id == PostId && p.UserId == LoggedInUser.Id);
+            if(post == null)
+            {
+              MessageBox.ErrorQuery("Post Error","Post with provided id doesn't exists.","OK");
+              return;
+            }
 
-           var Frame = new FrameView()
-           {
-             Width = Dim.Fill(),
-             Height = Dim.Fill() - 3
-           };
-
-           var PostIdLabel = new Label("Write Post Id")
-           {
-             X = Pos.Center(),
-             Y = 1,
-           };
-
-           var PostIdField = new TextField()
-           {
-             X = Pos.Center(),
-             Y = Pos.Bottom(PostIdLabel),
-             Width = 20
-           };
-
-           var SubmitButton = new Button("Submit")
-           {
-             X = Pos.Center(),
-             Y = Pos.Bottom(PostIdField) + 1
-           };
-
-           var ExitButton = new Button("Exit")
-           {
-             X = Pos.Center(),
-             Y = Pos.Bottom(SubmitButton) + 1
-           };
-
-           ExitButton.Clicked += () =>
-           {
-             UserMenu userMenu = new UserMenu();
-             userMenu.ShowUserMenu(top,LoggedInUser);
-           };
-
-           SubmitButton.Clicked += () =>
-           {
-             var PostIdInput = PostIdField.Text.ToString();
-             if(string.IsNullOrWhiteSpace(PostIdInput))
-             {
-               MessageBox.ErrorQuery("Validation Error","Invalid Id Input.","OK");
-               return;
-             }
-             var PostIdInt = int.Parse(PostIdInput);
-             
-             try
-             {
-               var post = database.Posts.FirstOrDefault(p => p.Id == PostIdInt && p.UserId == LoggedInUser.Id);
-               if(post == null)
-               {
-                 MessageBox.ErrorQuery("Post Error","Post with provided id doesn't exists.","OK");
-                 return;
-               }
-
-               database.Posts.Remove(post);
-               database.SaveChanges();
-               MessageBox.Query("Succes",$"Removed Post - Id: {post.Id}, Title: {post.Title}","OK");
-             }
-             catch (Exception ex)
-             {
-               MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
-             }
-
-           };
-
-           Frame.Add(PostIdLabel, PostIdField, SubmitButton, ExitButton);
-           top.Add(Frame);
+            database.Posts.Remove(post);
+            database.SaveChanges();
+            MessageBox.Query("Succes",$"Removed Post - Id: {post.Id}, Title: {post.Title}","OK");
+          }
+            catch (Exception ex)
+          {
+            MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+          }
         }
 
         public void SearchPost(Toplevel top, User LoggedInUser)
@@ -764,11 +733,26 @@ namespace Forum
               return;
             }
 
-            Group NewGroup = new Group{Name = GroupNameInput};
-            
-            database.Groups.Add(NewGroup);
-            database.SaveChanges();
-            MessageBox.Query("Success",$"Group: {NewGroup.Name} was created!","OK");
+            try
+            {
+              Group NewGroup = new Group{Name = GroupNameInput};
+              database.Groups.Add(NewGroup);
+              database.SaveChanges(); 
+              var createdGroup = database.Groups.FirstOrDefault(g => g.Name.ToLower() == NewGroup.Name.ToLower());
+              if(createdGroup == null)
+              {
+                MessageBox.ErrorQuery("Group Error","Group was not found.","OK");
+                return;
+              }
+              UserGroup NewUserGroup = new UserGroup{UserId = LoggedInUser.Id, GroupId = createdGroup.Id};
+              database.UserGroups.Add(NewUserGroup);
+              database.SaveChanges();
+              MessageBox.Query("Success",$"Group: {NewGroup.Name} was created!","OK");
+            }
+            catch (Exception ex)
+            {
+              MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+            }
 
             
           };
@@ -806,15 +790,26 @@ namespace Forum
             Height = 20,
           };
 
-          var ExitButton = new Button("Exit")
+          var CreateGroupBtn = new Button("Create Group")
           {
             X = Pos.Center(),
             Y = Pos.Bottom(GroupList) + 1,
           };
 
+          var ExitButton = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(CreateGroupBtn) + 1,
+          };
+
           ExitButton.Clicked += () =>
           {
             userMenu.ShowUserMenu(top,LoggedInUser);
+          };
+
+          CreateGroupBtn.Clicked += () =>
+          {
+            CreateGroup(top,LoggedInUser);
           };
 
           GroupList.KeyDown += e =>
@@ -842,12 +837,110 @@ namespace Forum
                 Height = Dim.Fill(),
               };
 
+              var UsersOfGorup = database.UserGroups
+              .Include(ug => ug.user)
+              .Include(ug => ug.group)
+              .Where(ug => ug.GroupId == SelectedGroup.Id)
+              .ToList();
 
+              var FormatedGroupUsers = UsersOfGorup.Any()
+              ? UsersOfGorup.Select(ug => $"User: {ug.user.Username},").ToList()
+              : new List<string>{"No Users in Group."};
+
+              var UsersLable = new Label("Users:")
+              {
+                X = Pos.Center(),
+                Y = 1
+              };
+
+              var UsersList = new ListView(FormatedGroupUsers)
+              {
+                Y = Pos.Bottom(UsersLable) + 1,
+                Width = Dim.Fill(),
+                Height = 20
+              };
+
+              var GroupComments = database.GroupComments
+              .Include(gc => gc.user)
+              .Include(gc => gc.group)
+              .Where(gc => gc.GroupId == SelectedGroup.Id);
+
+              var FormatedGroupComments = GroupComments.Any()
+              ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
+              : new List<string>{"No Comments Avaiable"};
+
+              var IsMemberOfGroup = UsersOfGorup.FirstOrDefault(ug => ug.UserId == LoggedInUser.Id);
+              if(IsMemberOfGroup != null)
+              {
+                var GroupCommentsLabel = new Label("Comments:")
+                {
+                  X = Pos.Center(),
+                  Y = Pos.Bottom(UsersList) + 2
+                };
+
+                var GroupCommentsList = new ListView(FormatedGroupComments)
+                {
+                  Width = Dim.Fill(),
+                  Height = 20,
+                  Y = Pos.Bottom(GroupCommentsLabel) + 1,
+                };
+                GroupWindow.Add(GroupCommentsLabel,GroupCommentsList);
+              }else if(IsMemberOfGroup == null){
+                var CantViewComments = new Label("You are not group member, so you cant view comments.")
+                {
+                  X = Pos.Center(),
+                  Y = Pos.Bottom(UsersList) + 2,
+                };
+                GroupWindow.Add(CantViewComments);
+              }
+
+              var JoinGroupButton = new Button("Join Group")
+              {
+                X = Pos.Center(),
+                Y = Pos.Bottom(UsersList) + 6 
+              };
+
+              var ExitButton = new Button("Exit")
+              {
+                X = Pos.Center(),
+                Y = Pos.Bottom(JoinGroupButton) + 1,
+              };
+
+
+              ExitButton.Clicked += () =>
+              {
+                userMenu.ShowUserMenu(top,LoggedInUser);
+              }; 
+
+              JoinGroupButton.Clicked += () =>
+              {
+                var AlreadyJoined = database.UserGroups.FirstOrDefault(ug => ug.UserId == LoggedInUser.Id);
+                if(AlreadyJoined != null)
+                {
+                  MessageBox.ErrorQuery("Group Error","You are already member of this group.","OK");
+                  return;
+                }
+                UserGroup NewUserGroup = new UserGroup{UserId = LoggedInUser.Id,GroupId = SelectedGroup.Id};
+                try
+                {
+                  database.UserGroups.Add(NewUserGroup);
+                  database.SaveChanges();
+                  MessageBox.Query("Success",$"You joined a group: {SelectedGroup.Name}","OK");
+                  ViewGroups(top,LoggedInUser);
+                }
+                catch (Exception ex)
+                {
+                  MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                }
+              };
+
+
+              GroupWindow.Add(UsersLable,UsersList,JoinGroupButton,ExitButton);
               top.Add(GroupWindow);
             }
           };
 
-          window.Add(GroupList,ExitButton);
+          window.Add(GroupList,ExitButton,CreateGroupBtn);
           top.Add(window);
         }
 

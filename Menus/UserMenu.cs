@@ -25,62 +25,25 @@ namespace Forum
           var ViewPosts = new  Button("View Posts")
           {
             X = Pos.Center(),
-            Y = 1,
-          };
-
-          var ViewMyPosts = new Button("View My Posts")
-          {
-            X = Pos.Center(),
-            Y = 2,
+            Y = Pos.Bottom(TitleLabel) + 2,
           };
 
           var AddPost = new Button("Add Post")
           {
             X = Pos.Center(),
-            Y = 3,
-          };
-
-          
-          var AddCommentToPost = new Button("Add Comment To a Post")
-          {
-            X = Pos.Center(),
-            Y = 4,
-          };
-
-          var RemoveMyPost = new Button("Remove my Post")
-          {
-            X = Pos.Center(),
-            Y = 5,
+            Y = Pos.Bottom(ViewPosts) + 1,
           };
 
           var SearchPost = new Button("Search Post")
           {
             X = Pos.Center(),
-            Y = 6,
+            Y = Pos.Bottom(AddPost) + 1,
           };
 
           var ViewGroups = new Button("View Groups")
           {
             X = Pos.Center(),
-            Y = 7,
-          };
-
-          var CreateGroup = new Button("Create Group")
-          {
-            X = Pos.Center(),
-            Y = 8,
-          };
-
-          var ViewGroupComments = new Button("View Group Comments")
-          {
-            X = Pos.Center(),
-            Y = 10,
-          };
-
-          var AddCommentToGroup = new Button("Add Comment to Group")
-          {
-            X = Pos.Center(),
-            Y = 11,
+            Y = Pos.Bottom(SearchPost) + 1,
           };
 
           var ExitButton = new Button("Exit")
@@ -100,39 +63,23 @@ namespace Forum
             userCrud.AddPost(top,LoggedInUser);
           };
 
-          ViewMyPosts.Clicked += () =>
-          {
-            userCrud.ViewMyPosts(top,LoggedInUser);
-          };
-
           ViewPosts.Clicked += ()=>
           {
             userCrud.ViewAllPosts(top,LoggedInUser);
           };
 
-          AddCommentToPost.Clicked += () =>
-          {
-            userCrud.AddComment(top,LoggedInUser);
-          };
-          RemoveMyPost.Clicked += () =>
-          {
-            userCrud.RemoveMyPost(top,LoggedInUser);
-          };
           SearchPost.Clicked += () =>
           {
             userCrud.SearchPost(top,LoggedInUser);
           };
-          CreateGroup.Clicked += () =>
-          {
-            userCrud.CreateGroup(top,LoggedInUser);
-          };
+          
           ViewGroups.Clicked += () =>
           {
             userCrud.ViewGroups(top,LoggedInUser);
           };
           
 
-          window.Add(TitleLabel,ViewPosts,ViewMyPosts,AddPost,AddCommentToPost,RemoveMyPost,SearchPost,ViewGroups,CreateGroup,ViewGroupComments,AddCommentToGroup,ExitButton);
+          window.Add(TitleLabel,ViewPosts,AddPost,SearchPost,ViewGroups,ExitButton);
           top.Add(window);
           
 
