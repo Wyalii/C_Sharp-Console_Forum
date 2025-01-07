@@ -796,10 +796,16 @@ namespace Forum
             Y = Pos.Bottom(GroupList) + 1,
           };
 
+          var ShowMyGroupsBtn = new Button("Show my Groups")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(CreateGroupBtn) + 1
+          };
+
           var ExitButton = new Button("Exit")
           {
             X = Pos.Center(),
-            Y = Pos.Bottom(CreateGroupBtn) + 1,
+            Y = Pos.Bottom(ShowMyGroupsBtn) + 1,
           };
 
           ExitButton.Clicked += () =>
@@ -810,6 +816,11 @@ namespace Forum
           CreateGroupBtn.Clicked += () =>
           {
             CreateGroup(top,LoggedInUser);
+          };
+
+          ShowMyGroupsBtn.Clicked += () =>
+          {
+            ShowMyGroups(top,LoggedInUser);
           };
 
           GroupList.KeyDown += e =>
@@ -940,7 +951,7 @@ namespace Forum
             }
           };
 
-          window.Add(GroupList,ExitButton,CreateGroupBtn);
+          window.Add(GroupList,ExitButton,CreateGroupBtn,ShowMyGroupsBtn);
           top.Add(window);
         }
 
@@ -980,6 +991,10 @@ namespace Forum
           {
             X  = Pos.Center(),
             Y = Pos.Bottom(GroupList) + 2
+          };
+
+          ExitButton.Clicked += () =>{
+            userMenu.ShowUserMenu(top,LoggedInUser);
           };
 
           Window.Add(GroupList,ExitButton);
