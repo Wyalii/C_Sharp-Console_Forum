@@ -67,6 +67,12 @@ namespace Forum
             .HasForeignKey(gc => gc.GroupId)
             .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Group>()
+            .HasOne(g => g.Admin)
+            .WithMany(u => u.AdministeredGroups)
+            .HasForeignKey(g => g.AdminId)
+            .OnDelete(DeleteBehavior.Cascade);
+
             
         }
     }    

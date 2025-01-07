@@ -735,7 +735,7 @@ namespace Forum
 
             try
             {
-              Group NewGroup = new Group{Name = GroupNameInput};
+              Group NewGroup = new Group{Name = GroupNameInput,AdminId = LoggedInUser.Id};
               database.Groups.Add(NewGroup);
               database.SaveChanges(); 
               var createdGroup = database.Groups.FirstOrDefault(g => g.Name.ToLower() == NewGroup.Name.ToLower());
@@ -962,11 +962,15 @@ namespace Forum
           {
             mainMenu.ShowMainMenu(top);
           }
-          var UserGroups = database.UserGroups
-          .Include(us => us.user)
-          .Include(us => us.group)
-          .Where(us => us.UserId == LoggedInUser.Id)
+          var UserGroups = database.Groups.
+          Include(g => g.Admin)
+          .Where(g => g.AdminId == LoggedInUser.Id)
           .ToList();
+
+          var FormatedUserGroups = UserGroups.Any()
+          ? UserGroups.Select(ug => $"Creator: {ug.Admin.Username}, Group: {ug.Name}").ToList()
+          : new List<string>{"groups not created."};
+          
 
           if(UserGroups == null)
           {
@@ -980,7 +984,7 @@ namespace Forum
             Height = Dim.Fill(),
           };
 
-          var GroupList = new ListView(UserGroups)
+          var GroupList = new ListView(FormatedUserGroups)
           {
             Y = 1,
             Width = Dim.Fill(),
