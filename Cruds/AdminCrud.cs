@@ -34,6 +34,7 @@ namespace Forum
                 Height = 20,
             };
 
+
             PostsListView.KeyDown += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter)
@@ -84,36 +85,43 @@ namespace Forum
 
                         CommentsListView.KeyDown += e =>
                         {
-                            if (!Comments.Any())
+                            if (e.KeyEvent.Key == Key.Backspace)
                             {
-                                MessageBox.Query("Info", "No comments to select.", "OK");
-                                return;
-                            }
-                            var CommentIndex = CommentsListView.SelectedItem;
-                            if (CommentIndex != -1)
-                            {
-                                var SelectedComment = Comments[CommentIndex];
-                                var GetComment = database.Comments.FirstOrDefault(c => c.Id == SelectedComment.Id);
-                                if (GetComment == null)
+                                var CommentIndex = CommentsListView.SelectedItem;
+                                if (CommentIndex != -1)
                                 {
-                                    MessageBox.ErrorQuery("Comment Error", "Comment doesn't exists.", "OK");
-                                    return;
-                                }
-                                try
-                                {
-                                    database.Comments.Remove(GetComment);
-                                    database.SaveChanges();
-                                    MessageBox.ErrorQuery("Success", "Removed Comment.", "OK");
-                                    top.RemoveAll();
-                                    AdminViewAllPosts(top, LoggedInUser);
+                                    var SelectedComment = Comments[CommentIndex];
+                                    var GetComment = database.Comments.FirstOrDefault(c => c.Id == SelectedComment.Id);
+                                    if (GetComment == null)
+                                    {
+                                        MessageBox.ErrorQuery("Comment Error", "Comment doesn't exists.", "OK");
+                                        return;
+                                    }
+                                    try
+                                    {
+                                        var result = MessageBox.Query("Delete Post", "Do you want to delete this comment?", "YES", "NO");
+                                        if (result == 0)
+                                        {
+                                            database.Comments.Remove(GetComment);
+                                            database.SaveChanges();
+                                            MessageBox.ErrorQuery("Success", "Removed Comment.", "OK");
+                                            top.RemoveAll();
+                                            AdminViewAllPosts(top, LoggedInUser);
+                                        }
 
-                                }
-                                catch (Exception ex)
-                                {
-                                    MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                                        if (result == 1)
+                                        {
+                                            MessageBox.Query("Info", "Delete was canceled", "OK");
+                                        }
+
+
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                                    }
                                 }
                             }
-
 
                         };
 
