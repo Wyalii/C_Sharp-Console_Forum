@@ -52,7 +52,7 @@ namespace Forum
 
             ViewAllPostsBtn.Clicked += () =>
             {
-                adminCurd.ViewAllPosts(top, LoggedInUser);
+                adminCurd.AdminViewAllPosts(top, LoggedInUser);
             };
 
             window.Add(ViewAllPostsBtn, ViewAllGroupsBtn, ViewAllUsersBtn, ExitBtn);

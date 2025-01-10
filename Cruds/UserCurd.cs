@@ -992,7 +992,7 @@ namespace Forum
       var JoinedGroups = database.UserGroups
       .Include(ug => ug.user)
       .Include(ug => ug.group)
-      .Where(ug => ug.UserId == LoggedInUser.Id)
+      .Where(ug => ug.UserId == LoggedInUser.Id && ug.group.AdminId != LoggedInUser.Id)
       .ToList();
 
       var FormatedJoinedGroups = JoinedGroups.Any()
@@ -1018,7 +1018,8 @@ namespace Forum
       var CreatedGroupsLabel = new Label("Created Groups:")
       {
         X = Pos.Center(),
-        Y = 1
+        Y = 1,
+        Width = 10,
       };
 
       var CreatedGroupsList = new ListView(FormatedUserGroups)
@@ -1032,6 +1033,7 @@ namespace Forum
       {
         Y = Pos.Bottom(CreatedGroupsList) + 3,
         X = Pos.Center(),
+        Width = 10,
       };
 
       var JoinedGroupsList = new ListView(FormatedJoinedGroups)
@@ -1234,7 +1236,7 @@ namespace Forum
           top.Add(Window);
         }
       };
-      Window.Add(CreatedGroupsList, JoinedGroupsList, ExitButton);
+      Window.Add(CreatedGroupsList, JoinedGroupsList, ExitButton, CreatedGroupsLabel, JoinedGroupsLabel);
       top.Add(Window);
     }
 

@@ -6,22 +6,27 @@ namespace Forum
     public class AdminCurd
     {
         Database database = new Database();
-        public void ViewAllPosts(Toplevel top, User LoggedInUser)
+        public void AdminViewAllPosts(Toplevel top, User LoggedInUser)
         {
 
             top.RemoveAll();
-
+            var window = new FrameView()
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill()
+            };
             var Posts = database.Posts.Include(p => p.user).ToList();
-            if (Posts.Count == 0)
+            if (Posts.Count == 0 || Posts == null)
             {
                 MessageBox.ErrorQuery("Posts Error", "No Posts Avaiable", "OK");
+                top.RemoveAll();
                 AdminMenu adminMenu = new AdminMenu();
                 adminMenu.ShowAdminMenu(top, LoggedInUser);
             }
 
             var FormatedPosts = Posts.Select(post => $"Post Id: {post.Id} | Post Author: {post.user.Username}  | Title: {post.Title}").ToList();
 
-            var window = new ListView(FormatedPosts)
+            var PostsListView = new ListView(FormatedPosts)
             {
                 X = 0,
                 Y = 0,
@@ -29,11 +34,11 @@ namespace Forum
                 Height = 20,
             };
 
-            window.KeyDown += (e) =>
+            PostsListView.KeyDown += (e) =>
             {
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    var PostIndex = window.SelectedItem;
+                    var PostIndex = PostsListView.SelectedItem;
                     if (PostIndex != -1)
                     {
                         var SelectedPost = Posts[PostIndex];
@@ -50,7 +55,7 @@ namespace Forum
                         ? Comments.Select(comment => $"User: {comment.user.Username} | Comment: {comment.Text}").ToList()
                         : new List<string> { "no comments found" };
 
-                        var PostWindow = new Window($"Post Author: {SelectedPost.user.Username}, Post Title: {SelectedPost.Title}")
+                        var PostWindow = new Window($"Post Id: {SelectedPost.Id} Post Author: {SelectedPost.user.Username}, Post Title: {SelectedPost.Title}")
                         {
                             X = 0,
                             Y = 0,
@@ -77,6 +82,41 @@ namespace Forum
                             Height = 10
                         };
 
+                        CommentsListView.KeyDown += e =>
+                        {
+                            if (!Comments.Any())
+                            {
+                                MessageBox.Query("Info", "No comments to select.", "OK");
+                                return;
+                            }
+                            var CommentIndex = CommentsListView.SelectedItem;
+                            if (CommentIndex != -1)
+                            {
+                                var SelectedComment = Comments[CommentIndex];
+                                var GetComment = database.Comments.FirstOrDefault(c => c.Id == SelectedComment.Id);
+                                if (GetComment == null)
+                                {
+                                    MessageBox.ErrorQuery("Comment Error", "Comment doesn't exists.", "OK");
+                                    return;
+                                }
+                                try
+                                {
+                                    database.Comments.Remove(GetComment);
+                                    database.SaveChanges();
+                                    MessageBox.ErrorQuery("Success", "Removed Comment.", "OK");
+                                    top.RemoveAll();
+                                    AdminViewAllPosts(top, LoggedInUser);
+
+                                }
+                                catch (Exception ex)
+                                {
+                                    MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                                }
+                            }
+
+
+                        };
+
                         var DeleteBtn = new Button("Delte Post")
                         {
                             X = Pos.Center(),
@@ -92,7 +132,30 @@ namespace Forum
 
                         ExitComments.Clicked += () =>
                         {
-                            ViewAllPosts(top, LoggedInUser);
+                            AdminViewAllPosts(top, LoggedInUser);
+                        };
+
+                        DeleteBtn.Clicked += () =>
+                        {
+                            var Posts = database.Posts.Include(p => p.user).ToList();
+                            if (Posts.Count == 0 || Posts == null)
+                            {
+                                MessageBox.ErrorQuery("Posts Error", "No Posts Avaiable", "OK");
+                                AdminMenu adminMenu = new AdminMenu();
+                                adminMenu.ShowAdminMenu(top, LoggedInUser);
+                            }
+                            var post = database.Posts.FirstOrDefault(p => p.Id == SelectedPost.Id);
+                            if (post == null)
+                            {
+                                MessageBox.ErrorQuery("Post Error", "Post with provided id doesn't exists", "OK");
+                                return;
+                            }
+
+                            database.Posts.Remove(post);
+                            database.SaveChanges();
+                            MessageBox.Query("Success", $"Post: {post.Title} was removed.", "OK");
+                            top.RemoveAll();
+                            AdminViewAllPosts(top, LoggedInUser);
                         };
 
                         PostWindow.Add(PostContentView, ExitComments, CommentsListView, DeleteBtn);
@@ -106,16 +169,17 @@ namespace Forum
             var ExitButton = new Button("Exit")
             {
                 X = Pos.Center(),
-                Y = 1
+                Y = Pos.Bottom(PostsListView) + 2,
             };
 
             ExitButton.Clicked += () =>
             {
-                UserMenu userMenu = new UserMenu();
-                userMenu.ShowUserMenu(top, LoggedInUser);
+                AdminMenu adminMenu = new AdminMenu();
+                adminMenu.ShowAdminMenu(top, LoggedInUser);
             };
             top.RemoveAll();
-            top.Add(window, ExitButton);
+            window.Add(PostsListView, ExitButton);
+            top.Add(window);
         }
     }
 }

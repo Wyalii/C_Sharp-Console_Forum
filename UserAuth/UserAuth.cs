@@ -213,8 +213,8 @@ namespace Forum
       submitButton.Clicked += () =>
       {
         var UsernameInput = UsernameField.Text.ToString();
-
-        if (UsernameInput == "Admin" || UsernameInput == "admin")
+        var PasswordInput = PasswordField.Text.ToString();
+        if (UsernameInput == "Admin" || UsernameInput == "admin" && PasswordInput == "AdminSecret")
         {
           LoggedInUser.IsAdmin = true;
           LoggedInUser.Username = "Admin";
@@ -226,7 +226,7 @@ namespace Forum
           MessageBox.ErrorQuery("Validation Error", "Invalid Username Input.", "OK");
           return;
         }
-        var PasswordInput = PasswordField.Text.ToString();
+
         if (string.IsNullOrWhiteSpace(PasswordInput))
         {
           MessageBox.ErrorQuery("Validation Error", "Invalid Password Input.", "OK");
