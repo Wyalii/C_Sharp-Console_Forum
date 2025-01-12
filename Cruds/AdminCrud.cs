@@ -92,11 +92,6 @@ namespace Forum
                                 {
                                     var SelectedComment = Comments[CommentIndex];
                                     var GetComment = database.Comments.FirstOrDefault(c => c.Id == SelectedComment.Id);
-                                    if (GetComment == null)
-                                    {
-                                        MessageBox.ErrorQuery("Comment Error", "Comment doesn't exists.", "OK");
-                                        return;
-                                    }
                                     try
                                     {
                                         var result = MessageBox.Query("Delete Post", "Do you want to delete this comment?", "YES", "NO");
@@ -189,5 +184,88 @@ namespace Forum
             window.Add(PostsListView, ExitButton);
             top.Add(window);
         }
+
+        public void AdminViewAllUsers(Toplevel top, User LoggedInUser)
+        {
+            top.RemoveAll();
+            var window = new FrameView()
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+            };
+
+            var FormatedUsers = database.Users.Select(u => $"User Id: {u.Id},Username: {u.Username}").ToList();
+            var AllUsers = database.Users.ToList();
+
+            var UsersLabel = new Label("Users:")
+            {
+                X = Pos.Center(),
+                Y = 1,
+            };
+            var UsersListView = new ListView(FormatedUsers)
+            {
+                Width = Dim.Fill(),
+                Y = Pos.Bottom(UsersLabel) + 1,
+                Height = 10,
+            };
+
+
+
+            var ExitBtn = new Button("Exit")
+            {
+                X = Pos.Center(),
+                Y = Pos.Bottom(UsersListView) + 1,
+            };
+
+            ExitBtn.Clicked += () =>
+            {
+                AdminMenu adminMenu = new AdminMenu();
+                adminMenu.ShowAdminMenu(top, LoggedInUser);
+            };
+
+            UsersListView.KeyDown += e =>
+            {
+
+                if (e.KeyEvent.Key == Key.Backspace)
+                {
+                    var UserIndex = UsersListView.SelectedItem;
+                    var SelectedUser = AllUsers[UserIndex];
+                    var user = database.Users.FirstOrDefault(u => u.Id == SelectedUser.Id);
+                    if (user == null)
+                    {
+                        MessageBox.ErrorQuery("User Error", "User with provided id doesn't exists.", "OK");
+                        return;
+                    }
+                    try
+                    {
+                        var result = MessageBox.Query("Removing User", $"Do You want To remove user: {user.Username}?", "YES", "NO");
+                        if (result == 0)
+                        {
+                            database.Users.Remove(user);
+                            FormatedUsers.RemoveAt(UserIndex);
+                            AllUsers.RemoveAt(UserIndex);
+                            database.SaveChanges();
+                            UsersListView.SetSource(FormatedUsers);
+                            MessageBox.Query("Success", $"User: {user.Username} was Removed.", "OK");
+
+                        }
+
+                        if (result == 1)
+                        {
+                            MessageBox.Query("Canceled", "Canceled User remove operation", "OK");
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                    }
+                }
+            };
+
+            window.Add(UsersLabel, UsersListView, ExitBtn);
+            top.Add(window);
+        }
+
     }
 }

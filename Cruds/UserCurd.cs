@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Identity.Client;
 using Terminal.Gui;
 
 namespace Forum
@@ -117,99 +118,142 @@ namespace Forum
       top.Add(window);
     }
 
-    public void ViewMyPosts(Toplevel top, User LoggedInUser)
+    public void ViewAllPosts(Toplevel top, User LoggedInUser)
     {
       if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
       {
+        MessageBox.ErrorQuery("User Error", "LoggedIn User Coudn't be found.", "OK");
+        MainMenu mainMenu = new MainMenu();
         mainMenu.ShowMainMenu(top);
       }
-      top.RemoveAll();
-      var UserPosts = database.Posts.Include(post => post.user).Where(p => p.UserId == LoggedInUser.Id).ToList();
-      if (UserPosts.Count == 0)
-      {
-        MessageBox.ErrorQuery("Post Error", "User doesnt have any posts.", "OK");
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      }
-      var Formated = UserPosts.Select(post => $"Id: {post.Id} | Title: {post.Title}").ToList();
 
-      var windowList = new ListView(Formated)
+      top.RemoveAll();
+      var WindowFrame = new FrameView()
       {
-        X = Pos.Center(),
-        Y = 0,
         Width = Dim.Fill(),
-        Height = Dim.Fill() - 3
+        Height = Dim.Fill()
       };
 
-      windowList.KeyDown += (e) =>
+      var AllPosts = database.Posts
+      .Include(p => p.user)
+      .Where(p => p.UserId != LoggedInUser.Id)
+      .ToList();
+
+      var MyPosts = database.Posts
+      .Include(p => p.user)
+      .Where(p => p.UserId == LoggedInUser.Id)
+      .ToList()
+      ;
+
+      var FromatedAllPosts = AllPosts.Any()
+      ? database.Posts
+      .Include(p => p.user)
+      .Select(p => $"Post Id: {p.Id}, Author: {p.user.Username}")
+      .ToList()
+
+      : new List<string> { "No Posts avaiable." };
+
+      var FormatedMyPosts = MyPosts.Any()
+      ? database.Posts
+      .Include(p => p.user)
+      .Select(p => $"Post Id: {p.Id}, Author: {p.user.Username}")
+      .ToList()
+
+      : new List<string> { "No posts Created yet." };
+
+
+
+      var AllPostsLabel = new Label("All Posts:")
+      {
+        X = Pos.Center(),
+        Y = 1
+      };
+      var AllPostsListView = new ListView(FromatedAllPosts)
+      {
+        Width = Dim.Fill(),
+        Height = 10,
+        Y = Pos.Bottom(AllPostsLabel) + 1
+      };
+
+      var MyPostsLabel = new Label("My Posts:")
+      {
+        X = Pos.Center(),
+        Y = Pos.Bottom(AllPostsListView) + 2
+      };
+      var MyPostsListView = new ListView(FormatedMyPosts)
+      {
+        Width = Dim.Fill(),
+        Height = 10,
+        Y = Pos.Bottom(MyPostsLabel) + 1
+      };
+
+      var ExitBtn = new Button("Exit")
+      {
+        X = Pos.Center(),
+        Y = Pos.Bottom(MyPostsListView) + 2
+      };
+
+      ExitBtn.Clicked += () =>
+      {
+        userMenu.ShowUserMenu(top, LoggedInUser);
+      };
+
+      AllPostsListView.KeyPress += e =>
       {
         if (e.KeyEvent.Key == Key.Enter)
         {
-          var PostIndex = windowList.SelectedItem;
-          if (PostIndex != -1)
+          var PostIndex = AllPostsListView.SelectedItem;
+          if (FromatedAllPosts[PostIndex] == "No Posts avaiable.")
           {
-            var SelectedPost = UserPosts[PostIndex];
-            if (SelectedPost == null)
+            MessageBox.ErrorQuery("No Posts", "No Posts are avaiable.", "OK");
+            e.Handled = true;
+            return;
+          }
+          else
+          {
+            e.Handled = false;
+            var SelectedPost = AllPosts[PostIndex];
+            var PostWindow = new Window($"Post Id: {SelectedPost.Id}, Author: {SelectedPost.user.Username}, Title: {SelectedPost.Title}")
             {
-              MessageBox.ErrorQuery("Post Error", "Post Doesn't Exists.", "OK");
-              return;
-            }
-            var Comments = database.Comments
-            .Include(comment => comment.user)
+              Width = Dim.Fill(),
+              Height = Dim.Fill(),
+            };
+
+            var AllComments = database.Comments
+            .Include(c => c.user)
             .Where(c => c.PostId == SelectedPost.Id)
             .ToList();
 
-            var FormattedComments = Comments.Any()
-            ? Comments.Select(comment => $"User: {comment.user.Username} | Comment: {comment.Text}").ToList()
-            : new List<string> { "no comments found" };
+            var FormatedComments = AllComments.Any()
+            ? AllComments.Select(c => $"User: {c.user.Username}, Comment: {c.Text}").ToList()
+            : new List<string> { "No Comments Avaible." };
 
-            var PostContent = SelectedPost.Content;
-
-            var PostWindow = new Window($"Post Id: {SelectedPost.Id}, Post Author: {SelectedPost.user.Username}, Post Title: {SelectedPost.Title}")
+            var CommentsLabel = new Label("Comments: ")
             {
-              X = 0,
-              Y = 0,
-              Width = Dim.Fill(),
-              Height = Dim.Fill() - 3,
-
+              X = Pos.Center(),
+              Y = 1,
             };
 
-            var PostContentView = new TextView()
+            var CommentsListView = new ListView(FormatedComments)
             {
-              X = 0,
-              Y = 0,
               Width = Dim.Fill(),
               Height = 10,
-              Text = PostContent,
-              ReadOnly = true,
-
-            };
-
-            var CommentsListView = new ListView(FormattedComments)
-            {
-              X = 0,
-              Y = Pos.Bottom(PostContentView) + 2,
-              Width = Dim.Fill(),
-              Height = 10
+              Y = Pos.Bottom(CommentsLabel) + 1
             };
 
             var AddCommentBtn = new Button("Add Comment")
             {
               X = Pos.Center(),
-              Y = Pos.Bottom(CommentsListView) + 2,
+              Y = Pos.Bottom(CommentsListView) + 2
             };
 
-            var RemovePostBtn = new Button("Remove Post")
+            var ExitPost = new Button("Exit")
             {
               X = Pos.Center(),
-              Y = Pos.Bottom(AddCommentBtn) + 1,
-            };
-            var ExitComments = new Button("Exit Comments")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(RemovePostBtn) + 1,
+              Y = Pos.Bottom(AddCommentBtn) + 1
             };
 
-            ExitComments.Clicked += () =>
+            ExitPost.Clicked += () =>
             {
               ViewAllPosts(top, LoggedInUser);
             };
@@ -219,163 +263,152 @@ namespace Forum
               AddComment(top, LoggedInUser, SelectedPost.Id);
             };
 
-            RemovePostBtn.Clicked += () =>
-            {
-              RemoveMyPost(top, LoggedInUser, SelectedPost.Id);
-              ViewMyPosts(top, LoggedInUser);
-            };
 
-            PostWindow.Add(PostContentView, ExitComments, CommentsListView, AddCommentBtn, RemovePostBtn);
+            PostWindow.Add(CommentsLabel, CommentsListView, ExitPost, AddCommentBtn);
             top.RemoveAll();
             top.Add(PostWindow);
           }
         }
       };
 
-
-      var ExitButton = new Button("Exit")
+      MyPostsListView.KeyPress += e =>
       {
-        X = Pos.Center(),
-        Y = Pos.Bottom(windowList) + 1
-      };
+        if (e.KeyEvent.Key == Key.Backspace)
+        {
+          var PostIndex = MyPostsListView.SelectedItem;
+          if (FormatedMyPosts[PostIndex] == "No posts Created yet.")
+          {
+            MessageBox.ErrorQuery("No Posts", "No Posts avaiable yet.", "OK");
+            e.Handled = true;
+            return;
+          }
+          else
+          {
+            var SelectedPost = MyPosts[PostIndex];
+            RemoveMyPost(top, LoggedInUser, SelectedPost.Id);
+          }
+        }
 
-      ExitButton.Clicked += () =>
-      {
-        UserMenu userMenu = new UserMenu();
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      };
-
-
-      top.Add(windowList, ExitButton);
-    }
-
-    public void ViewAllPosts(Toplevel top, User LoggedInUser)
-    {
-      if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
-      {
-        mainMenu.ShowMainMenu(top);
-      }
-      top.RemoveAll();
-
-      var Posts = database.Posts.Include(post => post.user).ToList();
-      if (Posts.Count == 0)
-      {
-        MessageBox.ErrorQuery("Posts Error", "No Posts Avaiable", "OK");
-        UserMenu userMenu = new UserMenu();
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      }
-
-      var FormatedPosts = Posts.Select(post => $"Post Id: {post.Id} | Post Author: {post.user.Username}  | Title: {post.Title}").ToList();
-
-      var window = new ListView(FormatedPosts)
-      {
-        X = 0,
-        Y = 0,
-        Width = Dim.Fill(),
-        Height = 20,
-      };
-
-      window.KeyDown += (e) =>
-      {
         if (e.KeyEvent.Key == Key.Enter)
         {
-          var PostIndex = window.SelectedItem;
-          if (PostIndex != -1)
+          var PostIndex = MyPostsListView.SelectedItem;
+          if (FormatedMyPosts[PostIndex] == "No posts Created yet.")
           {
-            var SelectedPost = Posts[PostIndex];
-            if (SelectedPost == null)
-            {
-              MessageBox.ErrorQuery("Post Error", "Post Doesn't Exists.", "OK");
-              return;
-            }
-            var Comments = database.Comments.Include(comment => comment.user).Where(c => c.PostId == SelectedPost.Id).ToList();
-            var FormattedComments = Comments.Any() ? Comments.Select(comment => $"User: {comment.user.Username} | Comment: {comment.Text}").ToList() : new List<string> { "no comments found" };
-            var PostContent = SelectedPost.Content;
-
-            var PostWindow = new Window($"Post Author: {SelectedPost.user.Username}, Post Title: {SelectedPost.Title}")
-            {
-              X = 0,
-              Y = 0,
-              Width = Dim.Fill(),
-              Height = Dim.Fill() - 3,
-
-            };
-
-            var PostContentView = new TextView()
-            {
-              X = 0,
-              Y = 0,
-              Width = Dim.Fill(),
-              Height = 10,
-              Text = PostContent,
-              ReadOnly = true,
-
-            };
-
-            var CommentsListView = new ListView(FormattedComments)
-            {
-              X = 0,
-              Y = Pos.Bottom(PostContentView) + 2,
-              Width = Dim.Fill(),
-              Height = 10
-            };
-
-            var AddCommentBtn = new Button("Add Comment")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(CommentsListView) + 2
-            };
-
-            var ExitComments = new Button("Exit Comments")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(AddCommentBtn) + 1,
-            };
-
-            ExitComments.Clicked += () =>
-                  {
-                    ViewAllPosts(top, LoggedInUser);
-                  };
-
-            AddCommentBtn.Clicked += () =>
-                  {
-                    AddComment(top, LoggedInUser, SelectedPost.Id);
-                  };
-
-            PostWindow.Add(PostContentView, ExitComments, CommentsListView, AddCommentBtn);
-            top.RemoveAll();
-            top.Add(PostWindow);
+            MessageBox.ErrorQuery("No Posts", "No Posts avaiable yet.", "OK");
+            e.Handled = true;
+            return;
           }
+          else
+          {
+            e.Handled = false;
+            var SelectedPost = MyPosts[PostIndex];
+            if (SelectedPost != null)
+            {
+              var MyPostsWindow = new Window($"Post Id: {SelectedPost.Id}, Author: {SelectedPost.user.Username}, Title: {SelectedPost.Title}")
+              {
+                Width = Dim.Fill(),
+                Height = Dim.Fill(),
+              };
 
+              var MyPostsComments = database.Comments
+              .Include(c => c.user)
+              .Where(c => c.PostId == SelectedPost.Id)
+              .ToList();
+
+              var FormatedComments = MyPostsComments.Any()
+              ? MyPostsComments.Select(c => $"Comment Id: {c.Id} User: {c.user.Username}, Comment: {c.Text}")
+              .ToList()
+              : new List<string> { "No Comments avaiable." };
+
+              var MyPostsCommentsLabel = new Label("Comments")
+              {
+                X = Pos.Center(),
+                Y = 1
+              };
+
+              var MyPostsCommentsListView = new ListView(FormatedComments)
+              {
+                Width = Dim.Fill(),
+                Y = Pos.Bottom(MyPostsCommentsLabel) + 1,
+                Height = 10,
+              };
+
+              var AddCommentBtn = new Button("Add Comment")
+              {
+                X = Pos.Center(),
+                Y = Pos.Bottom(MyPostsCommentsListView) + 2,
+              };
+
+              var ExitPost = new Button("Exit")
+              {
+                X = Pos.Center(),
+                Y = Pos.Bottom(AddCommentBtn) + 1,
+              };
+
+              ExitPost.Clicked += () =>
+              {
+                ViewAllPosts(top, LoggedInUser);
+              };
+
+              AddCommentBtn.Clicked += () =>
+              {
+                AddComment(top, LoggedInUser, SelectedPost.Id);
+              };
+
+              MyPostsCommentsListView.KeyPress += e =>
+              {
+                if (e.KeyEvent.Key == Key.Backspace)
+                {
+                  var CommentIndex = MyPostsCommentsListView.SelectedItem;
+                  if (FormatedComments[CommentIndex] == "No Comments avaiable.")
+                  {
+                    MessageBox.ErrorQuery("No Comments", "No Comments Avaiable,", "OK");
+                    e.Handled = true;
+                    return;
+                  }
+                  else
+                  {
+                    var SelectedComment = MyPostsComments[CommentIndex];
+                    if (SelectedComment != null)
+                    {
+                      var result = MessageBox.Query("Deleting Comment", $"DO you want to delete comment: {SelectedComment.Text}?", "YES", "NO");
+                      if (result == 0)
+                      {
+                        try
+                        {
+                          database.Comments.Remove(SelectedComment);
+                          database.SaveChanges();
+
+                          MyPostsComments.Remove(SelectedComment);
+                          var UpdatedComments = MyPostsComments.Any()
+                          ? MyPostsComments.Select(c => $"Comment Id: {c.Id} User: {c.user.Username}, Comment: {c.Text}")
+                          .ToList()
+                          : new List<string> { "No Comments avaiable." };
+
+                          MyPostsCommentsListView.SetSource(UpdatedComments);
+                          MessageBox.Query("Success", "Removed Comment!", "OK");
+                        }
+                        catch (Exception ex)
+                        {
+                          MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                        }
+                      }
+                    }
+                  }
+                }
+              };
+
+              MyPostsWindow.Add(MyPostsCommentsLabel, MyPostsCommentsListView, ExitPost, AddCommentBtn);
+              top.RemoveAll();
+              top.Add(MyPostsWindow);
+            };
+          };
         }
       };
 
-      var ViewMyPostsBtn = new Button("View My Posts")
-      {
-        X = Pos.Center(),
-        Y = Pos.Bottom(window) + 1
-      };
+      WindowFrame.Add(AllPostsLabel, AllPostsListView, MyPostsLabel, MyPostsListView, ExitBtn);
+      top.Add(WindowFrame);
 
-
-      var ExitButton = new Button("Exit")
-      {
-        X = Pos.Center(),
-        Y = Pos.Bottom(ViewMyPostsBtn) + 1
-      };
-
-      ExitButton.Clicked += () =>
-      {
-        UserMenu userMenu = new UserMenu();
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      };
-
-      ViewMyPostsBtn.Clicked += () =>
-      {
-        ViewMyPosts(top, LoggedInUser);
-      };
-
-      top.RemoveAll();
-      top.Add(window, ExitButton, ViewMyPostsBtn);
     }
 
     public void AddComment(Toplevel top, User LoggedInUser, int PostId)
@@ -748,7 +781,7 @@ namespace Forum
             MessageBox.ErrorQuery("Group Error", "Group was not found.", "OK");
             return;
           }
-          UserGroup NewUserGroup = new UserGroup { UserId = LoggedInUser.Id, GroupId = createdGroup.Id };
+          UserGroup NewUserGroup = new UserGroup { UserId = createdGroup.AdminId, GroupId = createdGroup.Id };
           database.UserGroups.Add(NewUserGroup);
           database.SaveChanges();
           MessageBox.Query("Success", $"Group: {NewGroup.Name} was created!", "OK");
@@ -767,478 +800,203 @@ namespace Forum
 
     public void ViewGroups(Toplevel top, User LoggedInUser)
     {
-      top.RemoveAll();
-
       if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
       {
+        MessageBox.ErrorQuery("User Error", "LoggedIn User Coudn't be found.", "OK");
+        MainMenu mainMenu = new MainMenu();
         mainMenu.ShowMainMenu(top);
       }
 
-      var window = new FrameView()
-      {
-        Width = Dim.Fill(),
-        Height = Dim.Fill(),
-      };
-
-      var FormatedGroups = database.Groups.Any()
-      ? database.Groups
-      .Select(g => $"Id: {g.Id}, Name: {g.Name}").ToList()
-      : new List<string> { "No Groups Avaiable" };
-
-      var AllGroups = database.Groups.Include(g => g.UserGroups).ToList();
-
-
-      var GroupList = new ListView(FormatedGroups)
-      {
-        Width = Dim.Fill(),
-        Height = 20,
-      };
-
-      var CreateGroupBtn = new Button("Create Group")
-      {
-        X = Pos.Center(),
-        Y = Pos.Bottom(GroupList) + 1,
-      };
-
-      var ShowMyGroupsBtn = new Button("Show my Groups")
-      {
-        X = Pos.Center(),
-        Y = Pos.Bottom(CreateGroupBtn) + 1
-      };
-
-      var ExitButton = new Button("Exit")
-      {
-        X = Pos.Center(),
-        Y = Pos.Bottom(ShowMyGroupsBtn) + 1,
-      };
-
-      ExitButton.Clicked += () =>
-      {
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      };
-
-      CreateGroupBtn.Clicked += () =>
-      {
-        CreateGroup(top, LoggedInUser);
-      };
-
-      ShowMyGroupsBtn.Clicked += () =>
-      {
-        ShowMyGroups(top, LoggedInUser);
-      };
-
-      GroupList.KeyDown += e =>
-      {
-        if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
-        {
-          mainMenu.ShowMainMenu(top);
-        }
-
-        if (e.KeyEvent.Key == Key.Enter)
-        {
-          top.RemoveAll();
-          var GroupIndex = GroupList.SelectedItem;
-          if (GroupIndex == -1)
-          {
-            MessageBox.ErrorQuery("Select Error", "Please Select an item first.", "OK");
-            return;
-          }
-
-          var SelectedGroup = AllGroups[GroupIndex];
-
-          var GroupWindow = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name}")
-          {
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
-          };
-
-          var UsersOfGorup = database.UserGroups
-          .Include(ug => ug.user)
-          .Include(ug => ug.group)
-          .Where(ug => ug.GroupId == SelectedGroup.Id)
-          .ToList();
-
-          var FormatedGroupUsers = UsersOfGorup.Any()
-          ? UsersOfGorup.Select(ug => $"User: {ug.user.Username},").ToList()
-          : new List<string> { "No Users in Group." };
-
-          var UsersLable = new Label("Users:")
-          {
-            X = Pos.Center(),
-            Y = 1
-          };
-
-          var UsersList = new ListView(FormatedGroupUsers)
-          {
-            Y = Pos.Bottom(UsersLable) + 1,
-            Width = Dim.Fill(),
-            Height = 20
-          };
-
-          var GroupComments = database.GroupComments
-          .Include(gc => gc.user)
-          .Include(gc => gc.group)
-          .Where(gc => gc.GroupId == SelectedGroup.Id);
-
-          var FormatedGroupComments = GroupComments.Any()
-          ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
-          : new List<string> { "No Comments Avaiable" };
-
-          var IsMemberOfGroup = UsersOfGorup.FirstOrDefault(ug => ug.UserId == LoggedInUser.Id);
-          if (IsMemberOfGroup != null)
-          {
-            var GroupCommentsLabel = new Label("Comments:")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(UsersList) + 2
-            };
-
-            var GroupCommentsList = new ListView(FormatedGroupComments)
-            {
-              Width = Dim.Fill(),
-              Height = 20,
-              Y = Pos.Bottom(GroupCommentsLabel) + 1,
-            };
-            GroupWindow.Add(GroupCommentsLabel, GroupCommentsList);
-          }
-          else if (IsMemberOfGroup == null)
-          {
-            var CantViewComments = new Label("You are not group member, so you cant view comments.")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(UsersList) + 2,
-            };
-            GroupWindow.Add(CantViewComments);
-          }
-
-          var JoinGroupButton = new Button("Join Group")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(UsersList) + 6
-          };
-
-          var AddCommentBtn = new Button("Add Comment")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(JoinGroupButton) + 1
-          };
-
-          var ExitButton = new Button("Exit")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(AddCommentBtn) + 1,
-          };
-
-
-          ExitButton.Clicked += () =>
-          {
-            userMenu.ShowUserMenu(top, LoggedInUser);
-          };
-
-          JoinGroupButton.Clicked += () =>
-          {
-            var AlreadyJoined = database.UserGroups.FirstOrDefault(ug => ug.UserId == LoggedInUser.Id);
-            if (AlreadyJoined != null)
-            {
-              MessageBox.ErrorQuery("Group Error", "You are already member of this group.", "OK");
-              return;
-            }
-            UserGroup NewUserGroup = new UserGroup { UserId = LoggedInUser.Id, GroupId = SelectedGroup.Id };
-            try
-            {
-              database.UserGroups.Add(NewUserGroup);
-              database.SaveChanges();
-              MessageBox.Query("Success", $"You joined a group: {SelectedGroup.Name}", "OK");
-              ViewGroups(top, LoggedInUser);
-            }
-            catch (Exception ex)
-            {
-              MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
-            }
-          };
-
-          AddCommentBtn.Clicked += () =>
-          {
-            AddGroupComment(SelectedGroup.Id, LoggedInUser, top);
-          };
-
-
-          GroupWindow.Add(UsersLable, UsersList, JoinGroupButton, ExitButton, AddCommentBtn);
-          top.Add(GroupWindow);
-        }
-      };
-
-      window.Add(GroupList, ExitButton, CreateGroupBtn, ShowMyGroupsBtn);
-      top.Add(window);
-    }
-
-    public void ShowMyGroups(Toplevel top, User LoggedInUser)
-    {
       top.RemoveAll();
-      if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
+      var WindowFrame = new FrameView()
       {
-        mainMenu.ShowMainMenu(top);
+        Width = Dim.Fill(),
+        Height = Dim.Fill()
+      };
+
+      var AllGroups = database.Groups.Include(g => g.Admin).ToList();
+      if (AllGroups == null)
+      {
+        MessageBox.ErrorQuery("Database Error", "AllGroups query returned null.", "OK");
+        return;
       }
-      var CreatedGroups = database.Groups.
-      Include(g => g.Admin)
+
+      var CreatedGroups = database.Groups
+      .Include(g => g.UserGroups)
+      .Include(g => g.Admin)
       .Where(g => g.AdminId == LoggedInUser.Id)
       .ToList();
-
-      var FormatedUserGroups = CreatedGroups.Any()
-      ? CreatedGroups.Select(ug => $"Admin: {ug.Admin.Username}, Group: {ug.Name}").ToList()
-      : new List<string> { "groups not created." };
-
-
-      var JoinedGroups = database.UserGroups
-      .Include(ug => ug.user)
-      .Include(ug => ug.group)
-      .Where(ug => ug.UserId == LoggedInUser.Id && ug.group.AdminId != LoggedInUser.Id)
-      .ToList();
-
-      var FormatedJoinedGroups = JoinedGroups.Any()
-      ? JoinedGroups.Select(jg => $"Group Id: {jg.group.Id}, Group Name: {jg.group.Name}").ToList()
-      : new List<string> { "no groups joined yet." };
-
       if (CreatedGroups == null)
       {
-        MessageBox.ErrorQuery("Group Error", "User has not created any groups.", "OK");
+        MessageBox.ErrorQuery("Database Error", "CreatedGroups query returned null.", "OK");
+        return;
       }
 
+      var JoinedGroups = database.Groups
+      .Include(g => g.UserGroups)
+      .Where(g => g.AdminId != LoggedInUser.Id && g.UserGroups.Any(ug => ug.UserId == LoggedInUser.Id))
+      .ToList();
       if (JoinedGroups == null)
       {
-        MessageBox.ErrorQuery("Group Error", "user has not joined any groups.", "OK");
+        MessageBox.ErrorQuery("Database Error", "JoinedGroups query returned null.", "OK");
+        return;
       }
 
-      var Window = new FrameView()
-      {
-        Width = Dim.Fill(),
-        Height = Dim.Fill(),
-      };
+      var FormatedAllGroups = AllGroups.Any()
+      ? AllGroups.Select(al => $"Group Id: {al.Id}, Group Name: {al.Name}, Admin: {al.AdminId}")
+      .ToList()
+      : new List<string> { "No Groups Avaiable." };
 
-      var CreatedGroupsLabel = new Label("Created Groups:")
+      var FormatedJoinedGroups = JoinedGroups.Any()
+      ? JoinedGroups.Select(jg => $"Group Id: {jg.Id}, Group Name: {jg.Name}, Admin: {jg.AdminId}")
+      .ToList()
+      : new List<string> { "No Joined Groups Avaiable." };
+
+      var FormatedCreatedGroups = CreatedGroups.Any()
+      ? CreatedGroups.Select(cg => $"Group Id: {cg.Id}, Group Name: {cg.Name}, Admin: {cg.Admin.Username}")
+      .ToList()
+      : new List<string> { "No Created Groups Avaiable." };
+
+      var AllGroupsLabel = new Label("All Groups List:")
       {
         X = Pos.Center(),
         Y = 1,
-        Width = 10,
       };
 
-      var CreatedGroupsList = new ListView(FormatedUserGroups)
+      var AllGroupsListView = new ListView(FormatedAllGroups)
+      {
+        Width = Dim.Fill(),
+        Height = 10,
+        Y = Pos.Bottom(AllGroupsLabel) + 1,
+      };
+
+      var JoinedGroupsLabel = new Label("All Joined Groups:")
+      {
+        X = Pos.Center(),
+        Y = Pos.Bottom(AllGroupsListView) + 2,
+      };
+
+      var JoinedGroupsListView = new ListView(FormatedJoinedGroups)
+      {
+        Width = Dim.Fill(),
+        Height = 10,
+        Y = Pos.Bottom(JoinedGroupsLabel) + 1,
+      };
+
+      var CreatedGroupsLabel = new Label("All Created Groups:")
+      {
+        X = Pos.Center(),
+        Y = Pos.Bottom(JoinedGroupsListView) + 2
+      };
+
+      var CreatedGroupsListView = new ListView(FormatedCreatedGroups)
       {
         Y = Pos.Bottom(CreatedGroupsLabel) + 1,
         Width = Dim.Fill(),
         Height = 10,
       };
 
-      var JoinedGroupsLabel = new Label("Joined Groups:")
-      {
-        Y = Pos.Bottom(CreatedGroupsList) + 3,
-        X = Pos.Center(),
-        Width = 10,
-      };
-
-      var JoinedGroupsList = new ListView(FormatedJoinedGroups)
-      {
-        Y = Pos.Bottom(CreatedGroupsList) + 3,
-        Width = Dim.Fill(),
-        Height = 10
-      };
-
-      var ExitButton = new Button("Exit")
+      var ExitBtn = new Button("Exit")
       {
         X = Pos.Center(),
-        Y = Pos.Bottom(JoinedGroupsList) + 2
+        Y = Pos.Bottom(CreatedGroupsListView) + 2
       };
 
-      ExitButton.Clicked += () =>
+      ExitBtn.Clicked += () =>
       {
         userMenu.ShowUserMenu(top, LoggedInUser);
       };
 
-      CreatedGroupsList.KeyPress += e =>
+      AllGroupsListView.KeyPress += e =>
       {
-        var GroupIndex = CreatedGroupsList.SelectedItem;
-        if (e.KeyEvent.Key == Key.Enter && GroupIndex != -1)
+        if (e.KeyEvent.Key == Key.Enter)
         {
-          top.RemoveAll();
-          var SelectedGroup = CreatedGroups[GroupIndex];
-          var Window = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name},Admin: {SelectedGroup.Admin.Username}")
+          var GroupIndex = AllGroupsListView.SelectedItem;
+          var SelectedGroup = AllGroups[GroupIndex];
+
+          var GroupWindow = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name}, Admin: {SelectedGroup.Admin.Username}")
           {
             Width = Dim.Fill(),
             Height = Dim.Fill(),
           };
 
-          var GroupComments = database.GroupComments
-          .Include(gc => gc.user)
-          .Include(gc => gc.group)
-          .Where(gc => gc.GroupId == SelectedGroup.Id)
-          .ToList();
+          var GroupUsers = database.UserGroups.Include(ug => ug.user).Where(ug => ug.GroupId == SelectedGroup.Id).ToList();
 
-          var FormatedGroupComments = GroupComments.Any()
-          ? GroupComments.Select(gc => $"User: {gc.user.Username},Comment: {gc.Text}").ToList()
-          : new List<string> { "No comments Avaiable." };
+          var FormatedGroupUsers = GroupUsers.Any()
+          ? GroupUsers.Select(ug => $"User: {ug.user.Username}").ToList()
+          : new List<string> { "No Members Avaiable." };
 
-          var UsersOfGorup = database.UserGroups
-          .Include(ug => ug.user)
-          .Include(ug => ug.group)
-          .Where(ug => ug.GroupId == SelectedGroup.Id)
-          .ToList();
-
-          var FormatedGroupUsers = UsersOfGorup.Any()
-          ? UsersOfGorup.Select(ug => $"User: {ug.user.Username},").ToList()
-          : new List<string> { "No Users in Group." };
-
-          var UsersLable = new Label("Users:")
+          var GroupUsersLabel = new Label("Group Members:")
           {
             X = Pos.Center(),
-            Y = 1
+            Y = 1,
           };
 
-          var UsersList = new ListView(FormatedGroupUsers)
-          {
-            Y = Pos.Bottom(UsersLable) + 1,
-            Width = Dim.Fill(),
-            Height = 10
-          };
-
-          var GroupCommentsLabel = new Label("Group Comments:")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(UsersList) + 2,
-          };
-
-          var GroupCommentsList = new ListView(FormatedGroupComments)
+          var GroupUsersListView = new ListView(FormatedGroupUsers)
           {
             Width = Dim.Fill(),
-            Y = Pos.Bottom(GroupCommentsLabel) + 1,
+            Y = Pos.Bottom(GroupUsersLabel) + 1,
             Height = 10,
           };
 
-          var AddCommentBtn = new Button("Add Comment")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(GroupCommentsList) + 1,
-          };
+          var IsMember = database.UserGroups.FirstOrDefault(ug => ug.UserId == LoggedInUser.Id && ug.GroupId == SelectedGroup.Id);
 
-          var DeleteGroupBtn = new Button("Delete")
+          if (IsMember != null)
           {
+            var GroupComments = database.GroupComments.Include(gc => gc.user).Where(gc => gc.GroupId == SelectedGroup.Id).ToList();
+            var FormatedGroupComments = GroupComments.Any()
+            ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
+            : new List<string> { "No Group Comments Avaiable." };
+
+            var GroupCommentsLabel = new Label("Group Comments:")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(GroupUsersListView) + 2,
+            };
+
+            var GroupCommentsListView = new ListView(FormatedGroupComments)
+            {
+              Width = Dim.Fill(),
+              Y = Pos.Bottom(GroupCommentsLabel) + 1,
+              Height = 10,
+            };
+
+            GroupWindow.Add(GroupCommentsLabel, GroupCommentsListView);
+          }
+          else
+          {
+            var CantViewCommentsLabel = new Label("No Access to comments since you are not a member.")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(GroupUsersListView) + 2,
+            };
+
+            GroupWindow.Add(CantViewCommentsLabel);
+          }
+
+          var JoinGroupBtn = new Button("Join Group")
+          {
+            Y = 20,
             X = Pos.Center(),
-            Y = Pos.Bottom(AddCommentBtn) + 1
           };
 
           var ExitBtn = new Button("Exit")
           {
+            Y = Pos.Bottom(JoinGroupBtn) + 1,
             X = Pos.Center(),
-            Y = Pos.Bottom(DeleteGroupBtn) + 1,
           };
 
-          AddCommentBtn.Clicked += () =>
-          {
-            AddGroupComment(SelectedGroup.Id, LoggedInUser, top);
-          };
-
-          ExitBtn.Clicked += () =>
-          {
-            userMenu.ShowUserMenu(top, LoggedInUser);
-          };
-
-          DeleteGroupBtn.Clicked += () =>
-          {
-            DeleteGroup(top, LoggedInUser, SelectedGroup.Id);
-          };
-
-          Window.Add(GroupCommentsLabel, GroupCommentsList, AddCommentBtn, ExitBtn, UsersLable, UsersList, DeleteGroupBtn);
-          top.Add(Window);
-        }
-      };
-
-      JoinedGroupsList.KeyPress += e =>
-      {
-        var GroupIndex = JoinedGroupsList.SelectedItem;
-        if (e.KeyEvent.Key == Key.Enter && GroupIndex != -1)
-        {
+          GroupWindow.Add(GroupUsersLabel, GroupUsersListView, JoinGroupBtn, ExitBtn);
           top.RemoveAll();
-          var SelectedGroup = JoinedGroups[GroupIndex];
-          var Window = new Window($"Group Id: {SelectedGroup.GroupId}, Group Name: {SelectedGroup.group.Name},Admin: {SelectedGroup.group.Admin.Username}")
-          {
-            Width = Dim.Fill(),
-            Height = Dim.Fill(),
-          };
-
-          var GroupComments = database.GroupComments
-          .Include(gc => gc.user)
-          .Include(gc => gc.group)
-          .Where(gc => gc.GroupId == SelectedGroup.GroupId)
-          .ToList();
-
-          var FormatedGroupComments = GroupComments.Any()
-          ? GroupComments.Select(gc => $"User: {gc.user.Username},Comment: {gc.Text}").ToList()
-          : new List<string> { "No comments Avaiable." };
-
-          var UsersOfGorup = database.UserGroups
-          .Include(ug => ug.user)
-          .Include(ug => ug.group)
-          .Where(ug => ug.GroupId == SelectedGroup.GroupId)
-          .ToList();
-
-          var FormatedGroupUsers = UsersOfGorup.Any()
-          ? UsersOfGorup.Select(ug => $"User: {ug.user.Username},").ToList()
-          : new List<string> { "No Users in Group." };
-
-          var UsersLable = new Label("Users:")
-          {
-            X = Pos.Center(),
-            Y = 1
-          };
-
-          var UsersList = new ListView(FormatedGroupUsers)
-          {
-            Y = Pos.Bottom(UsersLable) + 1,
-            Width = Dim.Fill(),
-            Height = 20
-          };
-
-          var GroupCommentsLabel = new Label("Group Comments:")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(UsersList) + 2,
-          };
-
-          var GroupCommentsList = new ListView(FormatedGroupComments)
-          {
-            Width = Dim.Fill(),
-            Y = Pos.Bottom(GroupCommentsLabel) + 1,
-            Height = 20,
-          };
-
-          var AddCommentBtn = new Button("Add Comment")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(GroupCommentsList) + 1,
-          };
-
-          var ExitBtn = new Button("Exit")
-          {
-            X = Pos.Center(),
-            Y = Pos.Bottom(AddCommentBtn) + 1,
-          };
-
-          AddCommentBtn.Clicked += () =>
-          {
-            AddGroupComment(SelectedGroup.GroupId, LoggedInUser, top);
-          };
-
-          ExitBtn.Clicked += () =>
-          {
-            userMenu.ShowUserMenu(top, LoggedInUser);
-          };
-
-          Window.Add(GroupCommentsLabel, GroupCommentsList, AddCommentBtn, ExitBtn, UsersLable, UsersList);
-          top.Add(Window);
+          top.Add(GroupWindow);
         }
       };
-      Window.Add(CreatedGroupsList, JoinedGroupsList, ExitButton, CreatedGroupsLabel, JoinedGroupsLabel);
-      top.Add(Window);
+
+      WindowFrame.Add(AllGroupsLabel, AllGroupsListView, JoinedGroupsLabel, JoinedGroupsListView, CreatedGroupsLabel, CreatedGroupsListView, ExitBtn);
+      top.Add(WindowFrame);
     }
+
+
 
     public void AddGroupComment(int GroupId, User LoggedInUser, Toplevel top)
     {
@@ -1260,6 +1018,7 @@ namespace Forum
       if (IsMemberOfGroup == null)
       {
         MessageBox.ErrorQuery("Group Error", "You are not part of the group.", "OK");
+        userMenu.ShowUserMenu(top, LoggedInUser);
         return;
       }
 

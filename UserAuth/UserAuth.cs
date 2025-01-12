@@ -157,117 +157,124 @@ namespace Forum
 
     public void Login(Toplevel top)
     {
-      top.RemoveAll();
-      var window = new FrameView()
+      try
       {
-        X = 0,
-        Y = 0,
-        Width = Dim.Fill(),
-        Height = Dim.Fill(),
-      };
-
-      var title = new Label("Login")
-      {
-        X = Pos.Center(),
-        Y = 0,
-      };
-
-      var UsernameLabel = new Label("Username:")
-      {
-        X = Pos.Center(),
-        Y = 2
-      };
-
-      var UsernameField = new TextField()
-      {
-        X = Pos.Center(),
-        Y = 3,
-        Width = 20
-      };
-
-      var PasswordLabel = new Label("Password:")
-      {
-        X = Pos.Center(),
-        Y = 5
-      };
-
-      var PasswordField = new TextField()
-      {
-        X = Pos.Center(),
-        Y = 6,
-        Width = 20
-      };
-
-      var submitButton = new Button("Submit")
-      {
-        X = Pos.Center(),
-        Y = 8
-      };
-
-      var ExitButton = new Button("Exit")
-      {
-        X = Pos.Center(),
-        Y = 10,
-      };
-
-      submitButton.Clicked += () =>
-      {
-        var UsernameInput = UsernameField.Text.ToString();
-        var PasswordInput = PasswordField.Text.ToString();
-        if (UsernameInput == "Admin" || UsernameInput == "admin" && PasswordInput == "AdminSecret")
-        {
-          LoggedInUser.IsAdmin = true;
-          LoggedInUser.Username = "Admin";
-          AdminMenu adminMenu = new AdminMenu();
-          adminMenu.ShowAdminMenu(top, LoggedInUser);
-        }
-        if (string.IsNullOrWhiteSpace(UsernameInput))
-        {
-          MessageBox.ErrorQuery("Validation Error", "Invalid Username Input.", "OK");
-          return;
-        }
-
-        if (string.IsNullOrWhiteSpace(PasswordInput))
-        {
-          MessageBox.ErrorQuery("Validation Error", "Invalid Password Input.", "OK");
-          return;
-        }
-        var Users = database.Users.ToList();
-        var user = Users.FirstOrDefault(u => u.Username == UsernameInput);
-
-        if (user == null)
-        {
-          MessageBox.ErrorQuery("Login Error", "User with provided Username Doesn't Exists.", "OK");
-          return;
-        }
-
-        var verifyPassword = BCrypt.Verify(PasswordInput, user.Password);
-
-        if (verifyPassword == false)
-        {
-          MessageBox.ErrorQuery("Login Error", "Wrong Password", "OK");
-          return;
-        }
-        LoggedInUser.Id = user.Id;
-        LoggedInUser.Username = user.Username;
-        LoggedInUser.Role = user.Role;
-        LoggedInUser.Posts = user.Posts;
-        LoggedInUser.Comments = user.Comments;
-        LoggedInUser.UserGroups = user.UserGroups;
-        MessageBox.Query("Success", $"User {LoggedInUser.Username} has loggedin.", "OK");
-        UserMenu userMenu = new UserMenu();
-        userMenu.ShowUserMenu(top, LoggedInUser);
-      };
-
-      ExitButton.Clicked += () =>
-      {
-        MainMenu mainMenu = new MainMenu();
         top.RemoveAll();
-        mainMenu.ShowMainMenu(top);
-      };
+        var window = new FrameView()
+        {
+          X = 0,
+          Y = 0,
+          Width = Dim.Fill(),
+          Height = Dim.Fill(),
+        };
 
-      window.Add(ExitButton, title, PasswordField, PasswordLabel, UsernameField, UsernameLabel, submitButton);
-      top.Add(window);
+        var title = new Label("Login")
+        {
+          X = Pos.Center(),
+          Y = 0,
+        };
+
+        var UsernameLabel = new Label("Username:")
+        {
+          X = Pos.Center(),
+          Y = 2
+        };
+
+        var UsernameField = new TextField()
+        {
+          X = Pos.Center(),
+          Y = 3,
+          Width = 20
+        };
+
+        var PasswordLabel = new Label("Password:")
+        {
+          X = Pos.Center(),
+          Y = 5
+        };
+
+        var PasswordField = new TextField()
+        {
+          X = Pos.Center(),
+          Y = 6,
+          Width = 20
+        };
+
+        var submitButton = new Button("Submit")
+        {
+          X = Pos.Center(),
+          Y = 8
+        };
+
+        var ExitButton = new Button("Exit")
+        {
+          X = Pos.Center(),
+          Y = 10,
+        };
+
+        submitButton.Clicked += () =>
+        {
+          var UsernameInput = UsernameField.Text.ToString();
+          var PasswordInput = PasswordField.Text.ToString();
+          if (UsernameInput == "Admin" || UsernameInput == "admin" && PasswordInput == "AdminSecret")
+          {
+            LoggedInUser.IsAdmin = true;
+            LoggedInUser.Username = "Admin";
+            AdminMenu adminMenu = new AdminMenu();
+            adminMenu.ShowAdminMenu(top, LoggedInUser);
+          }
+          if (string.IsNullOrWhiteSpace(UsernameInput))
+          {
+            MessageBox.ErrorQuery("Validation Error", "Invalid Username Input.", "OK");
+            return;
+          }
+
+          if (string.IsNullOrWhiteSpace(PasswordInput))
+          {
+            MessageBox.ErrorQuery("Validation Error", "Invalid Password Input.", "OK");
+            return;
+          }
+          var Users = database.Users.ToList();
+          var user = Users.FirstOrDefault(u => u.Username == UsernameInput);
+
+          if (user == null)
+          {
+            MessageBox.ErrorQuery("Login Error", "User with provided Username Doesn't Exists.", "OK");
+            return;
+          }
+
+          var verifyPassword = BCrypt.Verify(PasswordInput, user.Password);
+
+          if (verifyPassword == false)
+          {
+            MessageBox.ErrorQuery("Login Error", "Wrong Password", "OK");
+            return;
+          }
+          LoggedInUser.Id = user.Id;
+          LoggedInUser.Username = user.Username;
+          LoggedInUser.Role = user.Role;
+          LoggedInUser.Posts = user.Posts;
+          LoggedInUser.Comments = user.Comments;
+          LoggedInUser.UserGroups = user.UserGroups;
+          MessageBox.Query("Success", $"User {LoggedInUser.Username} has loggedin.", "OK");
+          UserMenu userMenu = new UserMenu();
+          userMenu.ShowUserMenu(top, LoggedInUser);
+        };
+
+        ExitButton.Clicked += () =>
+        {
+          MainMenu mainMenu = new MainMenu();
+          top.RemoveAll();
+          mainMenu.ShowMainMenu(top);
+        };
+
+        window.Add(ExitButton, title, PasswordField, PasswordLabel, UsernameField, UsernameLabel, submitButton);
+        top.Add(window);
+      }
+      catch (Exception ex)
+      {
+        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+      }
 
     }
   }

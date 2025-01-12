@@ -8,9 +8,10 @@ namespace Forum
         public void ShowAdminMenu(Toplevel top, User LoggedInUser)
         {
             MainMenu mainMenu = new MainMenu();
-            if (LoggedInUser.Username.ToLower() != "admin")
+            if (LoggedInUser.Username.ToLower() != "admin" && LoggedInUser.Password != "AdminSecret")
             {
                 MessageBox.ErrorQuery("Auth Error", "restricted area.", "OK");
+                top.RemoveAll();
                 mainMenu.ShowMainMenu(top);
             }
             top.RemoveAll();
@@ -53,6 +54,11 @@ namespace Forum
             ViewAllPostsBtn.Clicked += () =>
             {
                 adminCurd.AdminViewAllPosts(top, LoggedInUser);
+            };
+
+            ViewAllUsersBtn.Clicked += () =>
+            {
+                adminCurd.AdminViewAllUsers(top, LoggedInUser);
             };
 
             window.Add(ViewAllPostsBtn, ViewAllGroupsBtn, ViewAllUsersBtn, ExitBtn);

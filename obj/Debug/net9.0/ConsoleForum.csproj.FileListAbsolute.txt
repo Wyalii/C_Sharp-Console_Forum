@@ -5,6 +5,7 @@
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/ConsoleForum.pdb
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Azure.Core.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Azure.Identity.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/BCrypt.Net-Next.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/dotenv.net.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Humanizer.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Microsoft.Bcl.AsyncInterfaces.dll
@@ -42,6 +43,7 @@
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Microsoft.SqlServer.Server.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Microsoft.Win32.SystemEvents.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Mono.TextTemplating.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/NStack.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.ClientModel.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.CodeDom.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Composition.AttributedModel.dll
@@ -52,11 +54,13 @@
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Configuration.ConfigurationManager.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Drawing.Common.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.IdentityModel.Tokens.Jwt.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Management.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Memory.Data.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Runtime.Caching.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Security.Cryptography.ProtectedData.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Security.Permissions.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Windows.Extensions.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Terminal.Gui.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/cs/Microsoft.CodeAnalysis.resources.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/de/Microsoft.CodeAnalysis.resources.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/es/Microsoft.CodeAnalysis.resources.dll
@@ -122,6 +126,9 @@
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/tr/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/zh-Hans/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.BuildHost.resources.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/fr-FR/Terminal.Gui.resources.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/ja-JP/Terminal.Gui.resources.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/pt-PT/Terminal.Gui.resources.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/unix/lib/net6.0/Microsoft.Data.SqlClient.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/Microsoft.Data.SqlClient.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win-arm/native/Microsoft.Data.SqlClient.SNI.dll
@@ -131,6 +138,7 @@
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/Microsoft.Win32.SystemEvents.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/unix/lib/net6.0/System.Drawing.Common.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/System.Drawing.Common.dll
+/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net8.0/System.Management.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/System.Runtime.Caching.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/System.Security.Cryptography.ProtectedData.dll
 /home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net6.0/System.Windows.Extensions.dll
@@ -146,11 +154,3 @@
 /home/wyalii/Desktop/ConsoleForum/obj/Debug/net9.0/ConsoleForum.pdb
 /home/wyalii/Desktop/ConsoleForum/obj/Debug/net9.0/ConsoleForum.genruntimeconfig.cache
 /home/wyalii/Desktop/ConsoleForum/obj/Debug/net9.0/ref/ConsoleForum.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/BCrypt.Net-Next.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/NStack.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/System.Management.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/Terminal.Gui.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/fr-FR/Terminal.Gui.resources.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/ja-JP/Terminal.Gui.resources.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/pt-PT/Terminal.Gui.resources.dll
-/home/wyalii/Desktop/ConsoleForum/bin/Debug/net9.0/runtimes/win/lib/net8.0/System.Management.dll
