@@ -4,7 +4,8 @@ using Microsoft.VisualBasic;
 
 namespace Forum
 {
-   public class Database:DbContext{
+    public class Database : DbContext
+    {
         public DbSet<User> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Comment> Comments { get; set; }
@@ -26,7 +27,7 @@ namespace Forum
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-           
+
             modelBuilder.Entity<Comment>()
             .HasOne(c => c.user)
             .WithMany()
@@ -49,17 +50,17 @@ namespace Forum
             .HasForeignKey(ug => ug.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-             modelBuilder.Entity<UserGroup>()
-             .HasOne(ug => ug.group)
-             .WithMany()
-             .HasForeignKey(ug => ug.GroupId)
-             .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<UserGroup>()
+            .HasOne(ug => ug.group)
+            .WithMany()
+            .HasForeignKey(ug => ug.GroupId)
+            .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<GroupComment>()
             .HasOne(gc => gc.user)
             .WithMany()
             .HasForeignKey(gc => gc.UserId)
-            .OnDelete(DeleteBehavior.NoAction);    
+            .OnDelete(DeleteBehavior.NoAction);
 
             modelBuilder.Entity<GroupComment>()
             .HasOne(gc => gc.group)
@@ -73,7 +74,7 @@ namespace Forum
             .HasForeignKey(g => g.AdminId)
             .OnDelete(DeleteBehavior.Cascade);
 
-            
+
         }
-    }    
+    }
 }
