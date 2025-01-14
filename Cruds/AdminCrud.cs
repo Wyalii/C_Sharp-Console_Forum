@@ -16,20 +16,20 @@ namespace Forum
                 Height = Dim.Fill()
             };
             var Posts = database.Posts.Include(p => p.user).ToList();
-            if (Posts.Count == 0 || Posts == null)
-            {
-                MessageBox.ErrorQuery("Posts Error", "No Posts Avaiable", "OK");
-                top.RemoveAll();
-                AdminMenu adminMenu = new AdminMenu();
-                adminMenu.ShowAdminMenu(top, LoggedInUser);
-            }
 
-            var FormatedPosts = Posts.Select(post => $"Post Id: {post.Id} | Post Author: {post.user.Username}  | Title: {post.Title}").ToList();
+            var FormatedPosts = Posts.Any()
+            ? Posts.Select(p => $"Post Id: {p.Id}, Post Title: {p.Title}, Author: {p.user.Username}").ToList()
+            : new List<string> { "No Posts Avaiable." };
+
+            var PostsLabel = new Label("All Posts:")
+            {
+                X = Pos.Center(),
+                Y = 1
+            };
 
             var PostsListView = new ListView(FormatedPosts)
             {
-                X = 0,
-                Y = 0,
+                Y = Pos.Bottom(PostsLabel) + 1,
                 Width = Dim.Fill(),
                 Height = 20,
             };
@@ -37,9 +37,17 @@ namespace Forum
 
             PostsListView.KeyDown += (e) =>
             {
+                var PostIndex = PostsListView.SelectedItem;
+
                 if (e.KeyEvent.Key == Key.Enter)
                 {
-                    var PostIndex = PostsListView.SelectedItem;
+                    if (FormatedPosts[PostIndex] == "No Posts Avaiable.")
+                    {
+                        e.Handled = true;
+                        MessageBox.ErrorQuery("No Posts", "No Posts Avaiable.", "OK");
+                        return;
+                    }
+
                     if (PostIndex != -1)
                     {
                         var SelectedPost = Posts[PostIndex];
@@ -106,7 +114,7 @@ namespace Forum
 
                                         if (result == 1)
                                         {
-                                            MessageBox.Query("Info", "Delete was canceled", "OK");
+                                            MessageBox.Query("Delete Canceled", "Delete of comment was canceled", "OK");
                                         }
 
 
@@ -180,8 +188,7 @@ namespace Forum
                 AdminMenu adminMenu = new AdminMenu();
                 adminMenu.ShowAdminMenu(top, LoggedInUser);
             };
-            top.RemoveAll();
-            window.Add(PostsListView, ExitButton);
+            window.Add(PostsListView, ExitButton, PostsLabel);
             top.Add(window);
         }
 
@@ -193,9 +200,11 @@ namespace Forum
                 Width = Dim.Fill(),
                 Height = Dim.Fill(),
             };
-
-            var FormatedUsers = database.Users.Select(u => $"User Id: {u.Id},Username: {u.Username}").ToList();
             var AllUsers = database.Users.ToList();
+            var FormatedUsers = AllUsers.Any()
+            ? AllUsers.Select(au => $"Id: {au.Id}, Username: {au.Username}").ToList()
+            : new List<string> { "No Users Avaiable." };
+
 
             var UsersLabel = new Label("Users:")
             {
@@ -225,28 +234,56 @@ namespace Forum
 
             UsersListView.KeyDown += e =>
             {
+                var UserIndex = UsersListView.SelectedItem;
 
                 if (e.KeyEvent.Key == Key.Backspace)
                 {
-                    var UserIndex = UsersListView.SelectedItem;
+                    if (FormatedUsers[UserIndex] == "No Users Avaiable.")
+                    {
+                        e.Handled = true;
+                        MessageBox.ErrorQuery("No Users", "No Users Avaiable", "OK");
+                        return;
+                    }
                     var SelectedUser = AllUsers[UserIndex];
-                    var user = database.Users.FirstOrDefault(u => u.Id == SelectedUser.Id);
-                    if (user == null)
+                    var userToRemove = database.Users.FirstOrDefault(u => u.Id == SelectedUser.Id);
+                    var UserPostsToRemove = database.Posts.Where(p => p.UserId == SelectedUser.Id).ToList();
+                    var UserGroupsToRemove = database.Groups.Where(g => g.AdminId == SelectedUser.Id).ToList();
+                    var UserGroupCommentsToRemove = database.GroupComments.Where(gc => gc.UserId == SelectedUser.Id).ToList();
+                    var UserJoinedGroupsToRemove = database.UserGroups.Where(ug => ug.UserId == SelectedUser.Id).ToList();
+                    if (userToRemove == null)
                     {
                         MessageBox.ErrorQuery("User Error", "User with provided id doesn't exists.", "OK");
                         return;
                     }
                     try
                     {
-                        var result = MessageBox.Query("Removing User", $"Do You want To remove user: {user.Username}?", "YES", "NO");
+                        var result = MessageBox.Query("Removing User", $"Do You want To remove user: {userToRemove.Username}?", "YES", "NO");
                         if (result == 0)
                         {
-                            database.Users.Remove(user);
-                            FormatedUsers.RemoveAt(UserIndex);
-                            AllUsers.RemoveAt(UserIndex);
+                            if (UserPostsToRemove.Any())
+                            {
+                                database.Posts.RemoveRange(UserPostsToRemove);
+                            }
+
+                            if (UserGroupsToRemove.Any())
+                            {
+                                database.Groups.RemoveRange(UserGroupsToRemove);
+                            }
+
+                            if (UserGroupCommentsToRemove.Any())
+                            {
+                                database.GroupComments.RemoveRange(UserGroupCommentsToRemove);
+                            }
+
+                            if (UserJoinedGroupsToRemove.Any())
+                            {
+                                database.UserGroups.RemoveRange(UserJoinedGroupsToRemove);
+                            }
+                            database.Users.Remove(userToRemove);
+
                             database.SaveChanges();
-                            UsersListView.SetSource(FormatedUsers);
-                            MessageBox.Query("Success", $"User: {user.Username} was Removed.", "OK");
+                            MessageBox.Query("Success", $"User: {userToRemove.Username} was Removed.", "OK");
+                            AdminViewAllUsers(top, LoggedInUser);
 
                         }
 
