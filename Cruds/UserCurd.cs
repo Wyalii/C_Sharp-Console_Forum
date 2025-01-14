@@ -273,25 +273,46 @@ namespace Forum
 
       MyPostsListView.KeyPress += e =>
       {
+        var PostIndex = MyPostsListView.SelectedItem;
+
         if (e.KeyEvent.Key == Key.Backspace)
         {
-          var PostIndex = MyPostsListView.SelectedItem;
           if (FormatedMyPosts[PostIndex] == "No posts Created yet.")
           {
             MessageBox.ErrorQuery("No Posts", "No Posts avaiable yet.", "OK");
             e.Handled = true;
             return;
           }
-          else
+
+          var SelectedPost = MyPosts[PostIndex];
+          if (SelectedPost != null)
           {
-            var SelectedPost = MyPosts[PostIndex];
-            RemoveMyPost(top, LoggedInUser, SelectedPost.Id);
+            try
+            {
+              var result = MessageBox.Query("Deleting Post", "Do You Want do delete this post?", "YES", "NO");
+              if (result == 0)
+              {
+                database.Posts.Remove(SelectedPost);
+                database.SaveChanges();
+                MessageBox.Query("Success", $"Deleted Post: {SelectedPost.Title}", "OK");
+                ViewAllPosts(top, LoggedInUser);
+              }
+
+              if (result == 1)
+              {
+                MessageBox.Query("Delete canceled", "Delete action of post was cannceled", "OK");
+                return;
+              }
+            }
+            catch (Exception ex)
+            {
+              MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+            }
           }
         }
 
         if (e.KeyEvent.Key == Key.Enter)
         {
-          var PostIndex = MyPostsListView.SelectedItem;
           if (FormatedMyPosts[PostIndex] == "No posts Created yet.")
           {
             MessageBox.ErrorQuery("No Posts", "No Posts avaiable yet.", "OK");
@@ -357,41 +378,41 @@ namespace Forum
 
               MyPostsCommentsListView.KeyPress += e =>
               {
+                var CommentIndex = MyPostsCommentsListView.SelectedItem;
                 if (e.KeyEvent.Key == Key.Backspace)
                 {
-                  var CommentIndex = MyPostsCommentsListView.SelectedItem;
                   if (FormatedComments[CommentIndex] == "No Comments avaiable.")
                   {
                     MessageBox.ErrorQuery("No Comments", "No Comments Avaiable,", "OK");
                     e.Handled = true;
                     return;
                   }
-                  else
+                  var SelectedComment = MyPostsComments[CommentIndex];
+                  if (SelectedComment != null)
                   {
-                    var SelectedComment = MyPostsComments[CommentIndex];
-                    if (SelectedComment != null)
+                    var result = MessageBox.Query("Deleting Comment", $"DO you want to delete comment: {SelectedComment.Text}?", "YES", "NO");
+                    if (result == 0)
                     {
-                      var result = MessageBox.Query("Deleting Comment", $"DO you want to delete comment: {SelectedComment.Text}?", "YES", "NO");
-                      if (result == 0)
+                      try
                       {
-                        try
-                        {
-                          database.Comments.Remove(SelectedComment);
-                          database.SaveChanges();
+                        database.Comments.Remove(SelectedComment);
+                        database.SaveChanges();
+                        MyPostsComments = database.Comments
+                        .Include(c => c.user)
+                        .Where(c => c.PostId == SelectedPost.Id)
+                        .ToList();
 
-                          MyPostsComments.Remove(SelectedComment);
-                          var UpdatedComments = MyPostsComments.Any()
-                          ? MyPostsComments.Select(c => $"Comment Id: {c.Id} User: {c.user.Username}, Comment: {c.Text}")
-                          .ToList()
-                          : new List<string> { "No Comments avaiable." };
+                        FormatedComments = MyPostsComments.Any()
+                        ? MyPostsComments.Select(c => $"Comment Id: {c.Id} User: {c.user.Username}, Comment: {c.Text}")
+                        .ToList()
+                        : new List<string> { "No Comments avaiable." };
 
-                          MyPostsCommentsListView.SetSource(UpdatedComments);
-                          MessageBox.Query("Success", "Removed Comment!", "OK");
-                        }
-                        catch (Exception ex)
-                        {
-                          MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
-                        }
+                        MyPostsCommentsListView.SetSource(FormatedComments);
+                        MessageBox.Query("Success", "Removed Comment!", "OK");
+                      }
+                      catch (Exception ex)
+                      {
+                        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
                       }
                     }
                   }
@@ -492,31 +513,6 @@ namespace Forum
 
       Frame.Add(CommentLabel, CommentField, ExitButton, SubmitButton);
       top.Add(Frame);
-    }
-
-    public void RemoveMyPost(Toplevel top, User LoggedInUser, int PostId)
-    {
-      if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
-      {
-        mainMenu.ShowMainMenu(top);
-      }
-      try
-      {
-        var post = database.Posts.FirstOrDefault(p => p.Id == PostId && p.UserId == LoggedInUser.Id);
-        if (post == null)
-        {
-          MessageBox.ErrorQuery("Post Error", "Post with provided id doesn't exists.", "OK");
-          return;
-        }
-
-        database.Posts.Remove(post);
-        database.SaveChanges();
-        MessageBox.Query("Succes", $"Removed Post - Id: {post.Id}, Title: {post.Title}", "OK");
-      }
-      catch (Exception ex)
-      {
-        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
-      }
     }
 
     public void SearchPost(Toplevel top, User LoggedInUser)
@@ -899,9 +895,15 @@ namespace Forum
 
       AllGroupsListView.KeyPress += e =>
       {
+        var GroupIndex = AllGroupsListView.SelectedItem;
+        if (FormatedAllGroups[GroupIndex] == "No Groups Avaiable.")
+        {
+          e.Handled = true;
+          MessageBox.ErrorQuery("No Groups", "No Groups are Avaiabe.", "OK");
+          return;
+        }
         if (e.KeyEvent.Key == Key.Enter)
         {
-          var GroupIndex = AllGroupsListView.SelectedItem;
           var SelectedGroup = AllGroups[GroupIndex];
 
           var GroupWindow = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name}, Admin: {SelectedGroup.Admin.Username}")
@@ -967,23 +969,42 @@ namespace Forum
               GroupCommentsListView.KeyPress += e =>
               {
                 var CommentIndex = GroupCommentsListView.SelectedItem;
+                if (FormatedGroupComments[CommentIndex] == "No Group Comments Avaiable.")
+                {
+                  e.Handled = true;
+                  MessageBox.ErrorQuery("No Comments", "No Comments Avaiable", "OK");
+                  return;
+                }
                 if (e.KeyEvent.Key == Key.Backspace)
                 {
+                  e.Handled = true;
                   var SelectedComment = GroupComments[CommentIndex];
-                  var result = MessageBox.Query("Deleting Comment", "Do You want to delte comment?", "YES", "NO");
-                  try
+                  if (SelectedComment != null)
                   {
-                    if (result == 0)
+                    try
                     {
-                      database.GroupComments.Remove(SelectedComment);
-                      database.SaveChanges();
-                      MessageBox.Query("Success", $"Removed Comment: {SelectedComment.Text}", "OK");
-                      ViewGroups(top, LoggedInUser);
+                      var result = MessageBox.Query("Deleting Comment", "Do you want to delete this comment?", "YES", "NO");
+                      if (result == 0)
+                      {
+                        database.GroupComments.Remove(SelectedComment);
+                        database.SaveChanges();
+                        MessageBox.Query("Success", $"Removed Comment: {SelectedComment.Text}", "OK");
+                        GroupComments = database.GroupComments.Include(gc => gc.user).Where(gc => gc.GroupId == SelectedGroup.Id).ToList();
+                        FormatedGroupComments = GroupComments.Any()
+                        ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
+                        : new List<string> { "No Group Comments Avaiable." };
+                        GroupCommentsListView.SetSource(FormatedGroupComments);
+                      }
+                      if (result == 1)
+                      {
+                        MessageBox.Query("Canceled Delete", "Delete action stopped.", "OK");
+                        return;
+                      }
                     }
-                  }
-                  catch (Exception ex)
-                  {
-                    MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                    catch (Exception ex)
+                    {
+                      MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                    }
                   }
                 }
               };
@@ -1077,11 +1098,16 @@ namespace Forum
 
       JoinedGroupsListView.KeyPress += e =>
       {
+        var GroupIndex = JoinedGroupsListView.SelectedItem;
+        if (FormatedJoinedGroups[GroupIndex] == "No Joined Groups Avaiable.")
+        {
+          e.Handled = true;
+          MessageBox.ErrorQuery("No Groups", "No Joined Groups Avaiable.", "OK");
+          return;
+        }
         if (e.KeyEvent.Key == Key.Enter)
         {
           top.RemoveAll();
-
-          var GroupIndex = JoinedGroupsListView.SelectedItem;
           var SelectedGroup = JoinedGroups[GroupIndex];
           if (SelectedGroup != null)
           {
@@ -1135,10 +1161,16 @@ namespace Forum
               Y = Pos.Bottom(GroupCommentsListView) + 2
             };
 
-            var ExitBtn = new Button("Exit")
+            var LeaveGroupBtn = new Button("Leave Group")
             {
               X = Pos.Center(),
               Y = Pos.Bottom(AddGroupCommentBtn) + 1
+            };
+
+            var ExitBtn = new Button("Exit")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(LeaveGroupBtn) + 1
             };
 
             ExitBtn.Clicked += () =>
@@ -1150,8 +1182,183 @@ namespace Forum
             {
               AddGroupComment(SelectedGroup.GroupId, LoggedInUser, top);
             };
-            GroupWindow.Add(GroupUsersLabel, GroupUsersListView, GroupCommentsLabel, GroupCommentsListView, AddGroupCommentBtn, ExitBtn);
+
+            LeaveGroupBtn.Clicked += () =>
+            {
+              try
+              {
+                database.UserGroups.Remove(SelectedGroup);
+                database.SaveChanges();
+                MessageBox.Query("Success", "You left group.", "OK");
+                ViewGroups(top, LoggedInUser);
+              }
+              catch (Exception ex)
+              {
+                MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+              }
+            };
+            GroupWindow.Add(GroupUsersLabel, GroupUsersListView, GroupCommentsLabel, GroupCommentsListView, AddGroupCommentBtn, ExitBtn, LeaveGroupBtn);
             top.Add(GroupWindow);
+          }
+        }
+      };
+
+      CreatedGroupsListView.KeyPress += e =>
+      {
+        var GroupIndex = CreatedGroupsListView.SelectedItem;
+        if (FormatedCreatedGroups[GroupIndex] == "No Created Groups Avaiable.")
+        {
+          e.Handled = true;
+          MessageBox.ErrorQuery("No Groups", "No Created Groups Avaiable.", "OK");
+          return;
+        }
+        if (e.KeyEvent.Key == Key.Enter)
+        {
+          top.RemoveAll();
+
+          var SelectedGroup = CreatedGroups[GroupIndex];
+          if (SelectedGroup != null)
+          {
+            var GroupWindow = new Window($"Group Id: {SelectedGroup.Id}, Group Name: {SelectedGroup.Name}, Admin: {SelectedGroup.Admin.Username}")
+            {
+              Width = Dim.Fill(),
+              Height = Dim.Fill(),
+            };
+
+            var GroupUsers = database.UserGroups.Include(ug => ug.user).Where(ug => ug.GroupId == SelectedGroup.Id).ToList();
+
+            var FormatedGroupUsers = GroupUsers.Any()
+            ? GroupUsers.Select(ug => $"User: {ug.user.Username}").ToList()
+            : new List<string> { "No Members Avaiable." };
+
+            var GroupUsersLabel = new Label("Group Members:")
+            {
+              X = Pos.Center(),
+              Y = 1,
+            };
+
+            var GroupUsersListView = new ListView(FormatedGroupUsers)
+            {
+              Width = Dim.Fill(),
+              Y = Pos.Bottom(GroupUsersLabel) + 1,
+              Height = 10,
+            };
+
+            var GroupComments = database.GroupComments.Include(gc => gc.user).Where(gc => gc.GroupId == SelectedGroup.Id).ToList();
+
+            var FormatedGroupComments = GroupComments.Any()
+            ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
+            : new List<string> { "No Group Comments Avaiable." };
+
+            var GroupCommentsLabel = new Label("Group Comments:")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(GroupUsersListView) + 2,
+            };
+
+            var GroupCommentsListView = new ListView(FormatedGroupComments)
+            {
+              Width = Dim.Fill(),
+              Y = Pos.Bottom(GroupCommentsLabel) + 1,
+              Height = 10,
+            };
+
+            GroupCommentsListView.KeyPress += e =>
+            {
+              var CommentIndex = GroupCommentsListView.SelectedItem;
+              if (FormatedGroupComments[CommentIndex] == "No Group Comments Avaiable.")
+              {
+                e.Handled = true;
+                MessageBox.ErrorQuery("No Comments", "No Comments Avaiable", "OK");
+                return;
+              }
+              if (e.KeyEvent.Key == Key.Backspace)
+              {
+                e.Handled = true;
+                var SelectedComment = GroupComments[CommentIndex];
+                if (SelectedComment != null)
+                {
+                  try
+                  {
+                    var result = MessageBox.Query("Deleting Comment", "Do you want to delete this comment?", "YES", "NO");
+                    if (result == 0)
+                    {
+                      database.GroupComments.Remove(SelectedComment);
+                      database.SaveChanges();
+                      MessageBox.Query("Success", $"Removed Comment: {SelectedComment.Text}", "OK");
+                      GroupComments = database.GroupComments.Include(gc => gc.user).Where(gc => gc.GroupId == SelectedGroup.Id).ToList();
+                      FormatedGroupComments = GroupComments.Any()
+                      ? GroupComments.Select(gc => $"User: {gc.user.Username}, Comment: {gc.Text}").ToList()
+                      : new List<string> { "No Group Comments Avaiable." };
+                      GroupCommentsListView.SetSource(FormatedGroupComments);
+                    }
+                    if (result == 1)
+                    {
+                      MessageBox.Query("Canceled Delete", "Delete action stopped.", "OK");
+                      return;
+                    }
+                  }
+                  catch (Exception ex)
+                  {
+                    MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                  }
+                }
+              }
+            };
+
+            var ExitBtn = new Button("Exit")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(GroupCommentsListView) + 2
+            };
+
+            ExitBtn.Clicked += () =>
+            {
+              ViewGroups(top, LoggedInUser);
+            };
+
+            var DeleteBtn = new Button("Delete Group")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(ExitBtn) + 1,
+            };
+
+            DeleteBtn.Clicked += () =>
+            {
+              try
+              {
+                var UserGroupsToRemove = database.UserGroups.Where(ug => ug.GroupId == SelectedGroup.Id).ToList();
+                if (UserGroupsToRemove.Any())
+                {
+                  database.UserGroups.RemoveRange(UserGroupsToRemove);
+                }
+
+                database.Groups.Remove(SelectedGroup);
+                database.SaveChanges();
+                e.Handled = true;
+                MessageBox.Query("Success", $"Removed Group: {SelectedGroup.Name}", "OK");
+                ViewGroups(top, LoggedInUser);
+              }
+              catch (Exception ex)
+              {
+                MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+              }
+            };
+
+            var AddGroupCommentBtn = new Button("Add Comment")
+            {
+              X = Pos.Center(),
+              Y = Pos.Bottom(DeleteBtn) + 1
+            };
+
+            AddGroupCommentBtn.Clicked += () =>
+            {
+              AddGroupComment(SelectedGroup.Id, LoggedInUser, top);
+            };
+
+            GroupWindow.Add(GroupUsersLabel, GroupUsersListView, GroupCommentsLabel, GroupCommentsListView, ExitBtn, DeleteBtn, AddGroupCommentBtn);
+            top.Add(GroupWindow);
+
           }
         }
       };
@@ -1159,8 +1366,6 @@ namespace Forum
       WindowFrame.Add(AllGroupsLabel, AllGroupsListView, JoinedGroupsLabel, JoinedGroupsListView, CreatedGroupsLabel, CreatedGroupsListView, ExitBtn);
       top.Add(WindowFrame);
     }
-
-
 
     public void AddGroupComment(int GroupId, User LoggedInUser, Toplevel top)
     {
@@ -1249,37 +1454,6 @@ namespace Forum
       top.Add(window);
     }
 
-    public void DeleteGroup(Toplevel top, User LoggedInUser, int GroupId)
-    {
-      try
-      {
-        if (!database.Users.Any(u => u.Id == LoggedInUser.Id))
-        {
-          mainMenu.ShowMainMenu(top);
-        }
-
-        var group = database.Groups.FirstOrDefault(g => g.Id == GroupId);
-        if (group == null)
-        {
-          MessageBox.ErrorQuery("Group Error", "Group with provided id doesnt exists.", "OK");
-          return;
-        }
-
-        var UserOfGroup = database.UserGroups.Where(ug => ug.GroupId == group.Id).ToList();
-        if (UserOfGroup != null)
-        {
-          database.UserGroups.RemoveRange(UserOfGroup);
-          database.SaveChanges();
-        }
-        database.Groups.Remove(group);
-        database.SaveChanges();
-        MessageBox.Query("Success", $"Group: {group.Name} was removed.", "OK");
-      }
-      catch (Exception ex)
-      {
-        MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
-      }
-    }
   }
 }
 
