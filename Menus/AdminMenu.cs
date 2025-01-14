@@ -61,6 +61,11 @@ namespace Forum
                 adminCurd.AdminViewAllUsers(top, LoggedInUser);
             };
 
+            ViewAllGroupsBtn.Clicked += () =>
+            {
+                adminCurd.AdminViewAllGroups(top, LoggedInUser);
+            };
+
             window.Add(ViewAllPostsBtn, ViewAllGroupsBtn, ViewAllUsersBtn, ExitBtn);
             top.Add(window);
 

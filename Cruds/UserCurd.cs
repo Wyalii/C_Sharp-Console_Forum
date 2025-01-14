@@ -142,26 +142,18 @@ namespace Forum
       var MyPosts = database.Posts
       .Include(p => p.user)
       .Where(p => p.UserId == LoggedInUser.Id)
-      .ToList()
-      ;
+      .ToList();
 
       var FromatedAllPosts = AllPosts.Any()
-      ? database.Posts
-      .Include(p => p.user)
-      .Select(p => $"Post Id: {p.Id}, Author: {p.user.Username}")
+      ? AllPosts
+      .Select(p => $"Post Id: {p.Id} Post TItle: {p.Title}, Post Author: {p.user.Username}")
       .ToList()
 
       : new List<string> { "No Posts avaiable." };
 
       var FormatedMyPosts = MyPosts.Any()
-      ? database.Posts
-      .Include(p => p.user)
-      .Select(p => $"Post Id: {p.Id}, Author: {p.user.Username}")
-      .ToList()
-
+      ? MyPosts.Select(mp => $"Post Id: {mp.Id} Post TItle: {mp.Title}, Post Author: {mp.user.Username}").ToList()
       : new List<string> { "No posts Created yet." };
-
-
 
       var AllPostsLabel = new Label("All Posts:")
       {
@@ -201,6 +193,12 @@ namespace Forum
       AllPostsListView.KeyPress += e =>
       {
         var PostIndex = AllPostsListView.SelectedItem;
+        if (e.KeyEvent.Key == Key.Backspace)
+        {
+          e.Handled = true;
+          MessageBox.ErrorQuery("Action Not Allowed", "You cannot delete posts that are not yours.", "OK");
+          return;
+        }
         if (e.KeyEvent.Key == Key.Enter)
         {
           if (FromatedAllPosts[PostIndex] == "No Posts avaiable.")
@@ -209,67 +207,78 @@ namespace Forum
             e.Handled = true;
             return;
           }
-          else
+
+          e.Handled = true;
+          var SelectedPost = AllPosts[PostIndex];
+          var PostWindow = new Window($"Post Id: {SelectedPost.Id}, Author: {SelectedPost.user.Username}, Title: {SelectedPost.Title}")
           {
-            e.Handled = false;
-            var SelectedPost = AllPosts[PostIndex];
-            var PostWindow = new Window($"Post Id: {SelectedPost.Id}, Author: {SelectedPost.user.Username}, Title: {SelectedPost.Title}")
-            {
-              Width = Dim.Fill(),
-              Height = Dim.Fill(),
-            };
+            Width = Dim.Fill(),
+            Height = Dim.Fill(),
+          };
 
-            var AllComments = database.Comments
-            .Include(c => c.user)
-            .Where(c => c.PostId == SelectedPost.Id)
-            .ToList();
+          var AllComments = database.Comments
+          .Include(c => c.user)
+          .Where(c => c.PostId == SelectedPost.Id)
+          .ToList();
 
-            var FormatedComments = AllComments.Any()
-            ? AllComments.Select(c => $"User: {c.user.Username}, Comment: {c.Text}").ToList()
-            : new List<string> { "No Comments Avaible." };
+          var FormatedComments = AllComments.Any()
+          ? AllComments.Select(c => $"User: {c.user.Username}, Comment: {c.Text}").ToList()
+          : new List<string> { "No Comments Avaible." };
 
-            var CommentsLabel = new Label("Comments: ")
-            {
-              X = Pos.Center(),
-              Y = 1,
-            };
+          var PostTextLabel = new Label("Post Content:")
+          {
+            X = Pos.Center(),
+            Y = 1
+          };
+          var PostTextView = new Label($"{SelectedPost.Content}")
+          {
+            Y = Pos.Bottom(PostTextLabel) + 1,
+            Width = Dim.Fill(),
+            Height = 10,
+          };
 
-            var CommentsListView = new ListView(FormatedComments)
-            {
-              Width = Dim.Fill(),
-              Height = 10,
-              Y = Pos.Bottom(CommentsLabel) + 1
-            };
+          var CommentsLabel = new Label("Comments: ")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(PostTextView) + 2,
+          };
 
-            var AddCommentBtn = new Button("Add Comment")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(CommentsListView) + 2
-            };
+          var CommentsListView = new ListView(FormatedComments)
+          {
+            Width = Dim.Fill(),
+            Height = 10,
+            Y = Pos.Bottom(CommentsLabel) + 1
+          };
 
-            var ExitPost = new Button("Exit")
-            {
-              X = Pos.Center(),
-              Y = Pos.Bottom(AddCommentBtn) + 1
-            };
+          var AddCommentBtn = new Button("Add Comment")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(CommentsListView) + 2
+          };
 
-            ExitPost.Clicked += () =>
-            {
-              ViewAllPosts(top, LoggedInUser);
-            };
+          var ExitPost = new Button("Exit")
+          {
+            X = Pos.Center(),
+            Y = Pos.Bottom(AddCommentBtn) + 1
+          };
 
-            AddCommentBtn.Clicked += () =>
-            {
-              AddComment(top, LoggedInUser, SelectedPost.Id);
-            };
+          ExitPost.Clicked += () =>
+          {
+            ViewAllPosts(top, LoggedInUser);
+          };
+
+          AddCommentBtn.Clicked += () =>
+          {
+            AddComment(top, LoggedInUser, SelectedPost.Id);
+          };
 
 
-            PostWindow.Add(CommentsLabel, CommentsListView, ExitPost, AddCommentBtn);
-            top.RemoveAll();
-            top.Add(PostWindow);
-          }
+          PostWindow.Add(CommentsLabel, CommentsListView, ExitPost, AddCommentBtn, PostTextLabel, PostTextView);
+          top.RemoveAll();
+          top.Add(PostWindow);
         }
       };
+
 
       MyPostsListView.KeyPress += e =>
       {
@@ -289,9 +298,10 @@ namespace Forum
           {
             try
             {
-              var result = MessageBox.Query("Deleting Post", "Do You Want do delete this post?", "YES", "NO");
+              var result = MessageBox.Query("Deleting Post", $"Do You Want do delete post: {SelectedPost.Title}?", "YES", "NO");
               if (result == 0)
               {
+                e.Handled = true;
                 database.Posts.Remove(SelectedPost);
                 database.SaveChanges();
                 MessageBox.Query("Success", $"Deleted Post: {SelectedPost.Title}", "OK");
@@ -300,9 +310,11 @@ namespace Forum
 
               if (result == 1)
               {
+                e.Handled = true;
                 MessageBox.Query("Delete canceled", "Delete action of post was cannceled", "OK");
-                return;
+
               }
+
             }
             catch (Exception ex)
             {
@@ -341,10 +353,23 @@ namespace Forum
               .ToList()
               : new List<string> { "No Comments avaiable." };
 
+              var PostTextLabel = new Label("Post Content:")
+              {
+                X = Pos.Center(),
+                Y = 1,
+              };
+
+              var PostTextView = new Label($"{SelectedPost.Content}")
+              {
+                Y = Pos.Bottom(PostTextLabel) + 1,
+                Width = Dim.Fill(),
+                Height = 10,
+
+              };
               var MyPostsCommentsLabel = new Label("Comments")
               {
                 X = Pos.Center(),
-                Y = 1
+                Y = Pos.Bottom(PostTextView) + 2,
               };
 
               var MyPostsCommentsListView = new ListView(FormatedComments)
@@ -393,6 +418,7 @@ namespace Forum
                     var result = MessageBox.Query("Deleting Comment", $"DO you want to delete comment: {SelectedComment.Text}?", "YES", "NO");
                     if (result == 0)
                     {
+                      e.Handled = true;
                       try
                       {
                         database.Comments.Remove(SelectedComment);
@@ -415,11 +441,18 @@ namespace Forum
                         MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
                       }
                     }
+
+                    if (result == 1)
+                    {
+                      e.Handled = true;
+                      MessageBox.Query("Canceled", "Deleting Comment action was canceled", "OK");
+                      return;
+                    }
                   }
                 }
               };
 
-              MyPostsWindow.Add(MyPostsCommentsLabel, MyPostsCommentsListView, ExitPost, AddCommentBtn);
+              MyPostsWindow.Add(MyPostsCommentsLabel, MyPostsCommentsListView, ExitPost, AddCommentBtn, PostTextLabel, PostTextView);
               top.RemoveAll();
               top.Add(MyPostsWindow);
             };

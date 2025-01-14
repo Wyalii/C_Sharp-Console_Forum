@@ -105,6 +105,7 @@ namespace Forum
                                         var result = MessageBox.Query("Delete Post", "Do you want to delete this comment?", "YES", "NO");
                                         if (result == 0)
                                         {
+                                            e.Handled = true;
                                             database.Comments.Remove(GetComment);
                                             database.SaveChanges();
                                             MessageBox.ErrorQuery("Success", "Removed Comment.", "OK");
@@ -114,6 +115,7 @@ namespace Forum
 
                                         if (result == 1)
                                         {
+                                            e.Handled = true; ;
                                             MessageBox.Query("Delete Canceled", "Delete of comment was canceled", "OK");
                                         }
 
@@ -247,6 +249,7 @@ namespace Forum
                     var SelectedUser = AllUsers[UserIndex];
                     var userToRemove = database.Users.FirstOrDefault(u => u.Id == SelectedUser.Id);
                     var UserPostsToRemove = database.Posts.Where(p => p.UserId == SelectedUser.Id).ToList();
+                    var UserPostCommentsToRemove = database.Comments.Where(c => c.UserId == SelectedUser.Id).ToList();
                     var UserGroupsToRemove = database.Groups.Where(g => g.AdminId == SelectedUser.Id).ToList();
                     var UserGroupCommentsToRemove = database.GroupComments.Where(gc => gc.UserId == SelectedUser.Id).ToList();
                     var UserJoinedGroupsToRemove = database.UserGroups.Where(ug => ug.UserId == SelectedUser.Id).ToList();
@@ -260,25 +263,35 @@ namespace Forum
                         var result = MessageBox.Query("Removing User", $"Do You want To remove user: {userToRemove.Username}?", "YES", "NO");
                         if (result == 0)
                         {
+                            e.Handled = true;
+                            if (UserPostCommentsToRemove.Any())
+                            {
+                                database.Comments.RemoveRange(UserPostCommentsToRemove);
+                                database.SaveChanges();
+                            }
+                            if (UserGroupCommentsToRemove.Any())
+                            {
+                                database.GroupComments.RemoveRange(UserGroupCommentsToRemove);
+                                database.SaveChanges();
+                            }
+                            if (UserJoinedGroupsToRemove.Any())
+                            {
+                                database.UserGroups.RemoveRange(UserJoinedGroupsToRemove);
+                                database.SaveChanges();
+                            }
                             if (UserPostsToRemove.Any())
                             {
                                 database.Posts.RemoveRange(UserPostsToRemove);
+                                database.SaveChanges();
                             }
 
                             if (UserGroupsToRemove.Any())
                             {
                                 database.Groups.RemoveRange(UserGroupsToRemove);
+                                database.SaveChanges();
                             }
 
-                            if (UserGroupCommentsToRemove.Any())
-                            {
-                                database.GroupComments.RemoveRange(UserGroupCommentsToRemove);
-                            }
 
-                            if (UserJoinedGroupsToRemove.Any())
-                            {
-                                database.UserGroups.RemoveRange(UserJoinedGroupsToRemove);
-                            }
                             database.Users.Remove(userToRemove);
 
                             database.SaveChanges();
@@ -289,6 +302,7 @@ namespace Forum
 
                         if (result == 1)
                         {
+                            e.Handled = true;
                             MessageBox.Query("Canceled", "Canceled User remove operation", "OK");
                         }
 
@@ -302,6 +316,91 @@ namespace Forum
 
             window.Add(UsersLabel, UsersListView, ExitBtn);
             top.Add(window);
+        }
+
+        public void AdminViewAllGroups(Toplevel top, User LoggedInUser)
+        {
+            top.RemoveAll();
+            var WindowFrameView = new FrameView()
+            {
+                Width = Dim.Fill(),
+                Height = Dim.Fill()
+
+            };
+
+            var AllGroups = database.Groups.Include(g => g.Admin).ToList();
+            var FormatedGroups = AllGroups.Any()
+            ? AllGroups.Select(g => $"Group Id: {g.Id}, Group Name: {g.Name}, Admin: {g.Admin.Username}").ToList()
+            : new List<string> { "No Groups Avaiable." };
+
+            var GroupLabel = new Label("All Groups:")
+            {
+                X = Pos.Center(),
+                Y = 1,
+            };
+
+            var GroupsListView = new ListView(FormatedGroups)
+            {
+                Width = Dim.Fill(),
+                Height = 10,
+                Y = Pos.Bottom(GroupLabel) + 1,
+            };
+
+            GroupsListView.KeyPress += e =>
+            {
+                var GroupIndex = GroupsListView.SelectedItem;
+                if (e.KeyEvent.Key == Key.Backspace)
+                {
+                    if (FormatedGroups[GroupIndex] == "No Groups Avaiable.")
+                    {
+                        e.Handled = true;
+                        MessageBox.ErrorQuery("Error", "No Groups Avaiable", "OK");
+                        return;
+                    }
+
+                    var SelectedGroup = AllGroups[GroupIndex];
+                    var result = MessageBox.Query("Removing Group", $"Do you want to delete a group: {SelectedGroup.Name} ?", "YES", "NO");
+                    if (result == 0)
+                    {
+                        try
+                        {
+                            e.Handled = true;
+                            var UserGroupsToRemove = database.UserGroups.Where(ug => ug.GroupId == SelectedGroup.Id).ToList();
+                            database.UserGroups.RemoveRange(UserGroupsToRemove);
+                            database.Groups.Remove(SelectedGroup);
+                            database.SaveChanges();
+                            MessageBox.Query("Success", $"Deleted Group: {SelectedGroup.Name}", "OK");
+                            AdminViewAllGroups(top, LoggedInUser);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.ErrorQuery("Error", $"Unexpected Error: {ex.Message}\n{ex.InnerException?.Message}", "OK");
+                        }
+                    }
+
+                    if (result == 1)
+                    {
+                        e.Handled = true;
+                        MessageBox.Query("Canceled", "Canceled Group delete action.", "OK");
+                    }
+
+                }
+            };
+
+            var ExitBtn = new Button("Exit")
+            {
+                X = Pos.Center(),
+                Y = Pos.Bottom(GroupsListView) + 2,
+            };
+
+            ExitBtn.Clicked += () =>
+            {
+                AdminMenu adminMenu = new AdminMenu();
+                adminMenu.ShowAdminMenu(top, LoggedInUser);
+            };
+
+            WindowFrameView.Add(GroupLabel, GroupsListView, ExitBtn);
+            top.Add(WindowFrameView);
         }
 
     }
