@@ -22,7 +22,13 @@ This project is from **ITACADEMYSTEP**, when I was still learning C#.
 
 
 
-![Cat on Keyboard](https://media1.tenor.com/m/QWB9MQaMVKMAAAAC/cat-type.gif)
+
+---
 *me struggling on terminal.gui*
+
+
+
+![Cat on Keyboard](https://media1.tenor.com/m/QWB9MQaMVKMAAAAC/cat-type.gif)
+
 
 
