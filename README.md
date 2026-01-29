@@ -9,5 +9,5 @@ u can also login as admins.
 admins can do any crud operations on all comments/posts.
 
 overall it was really fun porjects to make, its not really useful but i learend alot.
-![Cat on Keyboard](https://media.tenor.com/images/abcdef1234567890abcdef1234567890/tenor.gif)
+![Cat on Keyboard](https://media1.tenor.com/m/QWB9MQaMVKMAAAAC/cat-type.gif)
 
